@@ -1,0 +1,100 @@
+# -*- coding: utf-8 -*-
+import sys, io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.path.insert(0, 'D:/bridge-teacher')
+
+from bidding_engine import compute_auction, hcp, sl
+from bridge_teacher import cfg
+
+cfg['majorLen']=5; cfg['ntMin']=15; cfg['ntMax']=17; cfg['minorLen']=3
+
+errors = []
+
+def make_hand(spades='', hearts='', diamonds='', clubs=''):
+    hand = []
+    for suit, cards in [('♠',spades),('♥',hearts),('♦',diamonds),('♣',clubs)]:
+        for r in cards:
+            hand.append({'s':suit,'r':r})
+    return hand
+
+EW_E = make_hand('T97','976','T987','876')
+EW_W = make_hand('862','543','654','T932')
+
+def run(name, hands, dealer, expected_ns):
+    c = dict(cfg)
+    auction, players = compute_auction(hands, dealer, c)
+    ns_bids = [auction[i] for i in range(len(auction)) if players[i] in ('N','S')]
+    if ns_bids == expected_ns:
+        print(f'[OK] {name}')
+    else:
+        print(f'[FAIL] {name}')
+        print(f'  צפוי:   {expected_ns}')
+        print(f'  קיבלנו: {ns_bids}')
+        errors.append(name)
+
+# ── TEST 1: 1NT → 2♣ → 2♥ → 4♥ (התאמה ♥, 10+) ──────────────────────────────
+# S: 4♥+4♣ = 2 רביעיות → סטיימן תקין
+run('1NT → 2♣ → 2♥ → 4♥ (התאמה, 10+)',
+    {'N': make_hand('AQ3','KQ54','AJ3','J54'),    # 17 נק', 4♥
+     'S': make_hand('65','AJ76','Q8','KQ32'),     # 12 נק', 4♥+4♣
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♣','2♥','4♥','פס'])
+
+# ── TEST 2: 1NT → 2♣ → 2♥ → 3♥ → 4♥ (התאמה ♥, 8-9, N=17) ──────────────────
+# S: 4♥+4♣ = 2 רביעיות
+run('1NT → 2♣ → 2♥ → 3♥ → 4♥ (N=17 מקבל)',
+    {'N': make_hand('KQ3','AJ54','K43','A32'),    # 17 נק', 4♥
+     'S': make_hand('J6','Q876','AJ6','T987'),    # 8 נק', 4♥+4♣
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♣','2♥','3♥','4♥','פס'])
+
+# ── TEST 3: 1NT → 2♣ → 2♥ → 3♥ → פס (התאמה ♥, 8-9, N=15) ──────────────────
+run('1NT → 2♣ → 2♥ → 3♥ → פס (N=15 דוחה)',
+    {'N': make_hand('AQ3','AJ54','K43','J32'),    # 15 נק', 4♥
+     'S': make_hand('J6','Q876','AJ6','T987'),    # 8 נק', 4♥+4♣
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♣','2♥','3♥','פס'])
+
+# ── TEST 4: 1NT → 2♣ → 2♠ → 4♠ (התאמה ♠, 10+) ──────────────────────────────
+# S: 4♠+4♣ = 2 רביעיות
+run('1NT → 2♣ → 2♠ → 4♠ (התאמה, 10+)',
+    {'N': make_hand('AQ32','K54','AJ3','Q32'),    # 16 נק', 4♠
+     'S': make_hand('KJ76','Q3','KQ4','J654'),    # 12 נק', 4♠+4♣
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♣','2♠','4♠','פס'])
+
+# ── TEST 5: 1NT → 2♣ → 2♦ → 3NT (אין התאמה, 10+) ────────────────────────────
+run('1NT → 2♣ → 2♦ → 3NT (אין מיגור, 10+)',
+    {'N': make_hand('AK3','K43','AJ32','Q54'),    # 17 נק', אין 4-קלף מיגור
+     'S': make_hand('Q654','AJ65','K87','32'),    # 10 נק', 4♠+4♥
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♣','2♦','3NT','פס'])
+
+# ── TEST 6: 1NT → 2♣ → 2♦ → 2NT → 3NT (אין התאמה, 8-9, N=17) ───────────────
+run('1NT → 2♣ → 2♦ → 2NT → 3NT (N=17 מקבל)',
+    {'N': make_hand('AKQ','K43','K432','Q54'),    # 17 נק', אין 4-קלף מיגור
+     'S': make_hand('J654','QJ65','87','KJ3'),    # 8 נק', 4♠+4♥
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♣','2♦','2NT','3NT','פס'])
+
+# ── TEST 7: 1NT → 2♣ → 2♦ → 2NT → פס (אין התאמה, 8-9, N=15) ────────────────
+run('1NT → 2♣ → 2♦ → 2NT → פס (N=15 דוחה)',
+    {'N': make_hand('AQ3','K43','AJ32','J54'),    # 15 נק', אין 4-קלף מיגור
+     'S': make_hand('Q654','QJ65','87','K93'),    # 8 נק', 4♠+4♥
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♣','2♦','2NT','פס'])
+
+# ── TEST 8: 1NT → 2♣ → 2♥ → 3NT (יש 4♠ אבל לא 4♥, N מכריז 2♥) ─────────────
+# S: 4♠+4♣ = 2 רביעיות → סטיימן, אבל N עונה 2♥ (אין ♠ fit)
+run('1NT → 2♣ → 2♥ → 3NT (אין התאמה ♥)',
+    {'N': make_hand('AK3','AJ54','K43','Q32'),    # 17 נק', 4♥, 3♠
+     'S': make_hand('QJ54','Q3','QJ5','KJ65'),    # 12 נק', 4♠+4♣
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♣','2♥','3NT','פס'])
+
+# ── סיכום ─────────────────────────────────────────────────────────────────────
+print()
+if errors:
+    print(f'{len(errors)} שגיאות: {errors}')
+else:
+    print('כל בדיקות הסטיימן עברו!')

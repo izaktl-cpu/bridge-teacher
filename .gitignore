@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Build artifacts
+dist/
+build/
+*.exe
+
+# Session backups (local safety copies)
+backup_*/
+
+# Generated
+test_results.txt

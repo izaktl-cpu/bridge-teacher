@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python test_slam.py)",
+      "Bash(python test_preempts.py)",
+      "Bash(python test_lessons.py)",
+      "Bash(python test_comprehensive.py)",
+      "Bash(python test_auction.py)",
+      "Bash(python test_transfer.py)",
+      "Bash(python test_stayman.py)",
+      "Bash(python test_deep.py)",
+      "Bash(python test_minor_rebid.py)",
+      "Bash(python test_level34.py)",
+      "Bash(python test_negative_double.py)",
+      "Bash(python test_double.py)",
+      "Bash(python test_overcall.py)",
+      "Bash(python test_logic.py)"
+    ]
+  }
+}

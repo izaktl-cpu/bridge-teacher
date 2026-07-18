@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bridge Teacher — עזרה למורה</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a4a2e; color: #222; min-height: 100vh; padding: 16px; }
+    h1 { text-align: center; color: #f0e6c8; font-size: 1.5rem; margin-bottom: 14px; letter-spacing: 1px; }
+
+    .settings-bar { display:flex; gap:20px; justify-content:center; flex-wrap:wrap; background:rgba(0,0,0,0.25); border-radius:10px; padding:10px 16px; margin:0 auto 16px; max-width:920px; }
+    .setting-group { display:flex; align-items:center; gap:6px; }
+    .setting-group label { color:#f0e6c8; font-size:0.85rem; font-weight:bold; }
+    .cfg-btn { padding:4px 10px; border:1.5px solid #c8a84b; border-radius:6px; background:transparent; color:#f0e6c8; font-size:0.8rem; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+    .cfg-btn.active { background:#c8a84b; color:#1a4a2e; font-weight:bold; }
+
+    .main-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:920px; margin:0 auto; }
+
+    .player-panel { background:linear-gradient(160deg,#ede0ff,#d8c5f5); border-radius:12px; padding:14px; border:2px solid #c8a84b; box-shadow:0 4px 12px rgba(0,0,0,0.3); min-height:200px; }
+    .panel-north { border-top:5px solid #2255aa; }
+    .panel-south { border-top:5px solid #cc2222; }
+    .panel-east  { border-top:5px solid #cc7700; }
+    .panel-west  { border-top:5px solid #228844; }
+
+    .panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .panel-name { font-size:1.1rem; font-weight:bold; }
+    .panel-north .panel-name { color:#2255aa; }
+    .panel-south .panel-name { color:#cc2222; }
+    .panel-east  .panel-name { color:#cc7700; }
+    .panel-west  .panel-name { color:#228844; }
+    .role-tag { font-size:0.72rem; padding:2px 8px; border-radius:10px; background:#e0d0ff; color:#555; border:1px solid #ccc; }
+    .role-tag.opener    { background:#d0e8ff; color:#2255aa; border-color:#2255aa; }
+    .role-tag.responder { background:#ffe0e0; color:#cc2222; border-color:#cc2222; }
+
+    .group-label { font-size:0.7rem; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:8px 0 4px; }
+    .btn-group { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:2px; }
+
+    .qbtn { padding:6px 10px; border:2px solid #ddd; border-radius:7px; background:#f7f7f7; cursor:pointer; font-size:0.8rem; font-family:inherit; transition:all 0.15s; white-space:nowrap; }
+    .qbtn:hover { border-color:#c8a84b; background:#fdf5e0; }
+    .qbtn.active { border-color:#c8a84b; background:#fdf0c0; font-weight:bold; box-shadow:0 0 0 2px #c8a84b44; }
+
+    .qbtn.resp { border-color:#dda0a0; background:#fff5f5; }
+    .qbtn.resp:hover { background:#ffe0e0; border-color:#cc2222; }
+    .qbtn.resp.active { background:#ffd0d0; border-color:#cc2222; font-weight:bold; box-shadow:0 0 0 2px #cc222244; }
+
+    .suit-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:5px 0; padding:5px 8px; background:#fffdf0; border:1px solid #c8a84b; border-radius:7px; }
+    .suit-row-label { font-size:0.75rem; color:#888; }
+    .spbtn { padding:4px 12px; border:2px solid #c8a84b; border-radius:6px; background:#fff; cursor:pointer; font-size:1rem; font-weight:bold; font-family:inherit; transition:all 0.15s; }
+    .spbtn:hover { background:#fdf0c0; }
+    .spbtn.he, .spbtn.di { color:#cc1111; }
+    .spbtn.sp, .spbtn.cl { color:#111; }
+
+    .btn-back { margin-top:8px; padding:4px 10px; font-size:0.75rem; background:transparent; border:1px solid #aaa; border-radius:6px; cursor:pointer; color:#666; font-family:inherit; }
+    .btn-back:hover { background:#f0f0f0; }
+
+    .status-box { margin-top:10px; font-size:0.8rem; color:#777; background:#f0f0f0; border-radius:6px; padding:6px 9px; min-height:28px; border-right:3px solid #ddd; }
+    .status-box.set-opener    { background:#eef5ff; border-right-color:#2255aa; color:#2255aa; }
+    .status-box.set-responder { background:#fff0f0; border-right-color:#cc2222; color:#cc2222; }
+
+    .dealer-row { display:flex; gap:14px; align-items:center; flex-wrap:wrap; max-width:920px; margin:12px auto 0; background:rgba(0,0,0,0.15); border-radius:8px; padding:8px 14px; }
+    .dealer-row > span { color:#f0e6c8; font-size:0.85rem; font-weight:bold; }
+    .dealer-opt { display:flex; align-items:center; gap:4px; color:#f0e6c8; font-size:0.85rem; cursor:pointer; }
+    .dealer-opt input { accent-color:#c8a84b; }
+
+    .actions { max-width:920px; margin:14px auto 0; display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap; }
+    .boards-row { display:flex; align-items:center; gap:8px; color:#f0e6c8; font-size:0.9rem; }
+    .boards-row input { width:55px; padding:6px 8px; border-radius:7px; border:none; font-size:1rem; text-align:center; background:#f0e6c8; font-family:inherit; }
+    .btn-deal { padding:12px 36px; background:linear-gradient(135deg,#c8a84b,#a07830); color:#fff; border:none; border-radius:10px; font-size:1.1rem; font-weight:bold; cursor:pointer; letter-spacing:1px; box-shadow:0 4px 12px rgba(0,0,0,0.3); transition:transform 0.1s; }
+    .btn-deal:hover { transform:translateY(-2px); }
+    .btn-deal:active { transform:translateY(0); }
+    .btn-reset { padding:12px 20px; background:transparent; color:#f0e6c8; border:2px solid #f0e6c8; border-radius:10px; font-size:0.95rem; cursor:pointer; font-family:inherit; }
+    .btn-reset:hover { background:rgba(240,230,200,0.15); }
+    .error-msg { color:#cc2222; background:#fff0f0; border:1px solid #ffaaaa; border-radius:6px; padding:8px 12px; font-size:0.85rem; max-width:920px; margin:10px auto 0; display:none; text-align:center; }
+
+    @media (max-width:600px) { .main-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<h1>🃏 Bridge Teacher — עזרה למורה</h1>
+
+<div class="settings-bar">
+  <div class="setting-group">
+    <label>מיגור:</label>
+    <button class="cfg-btn" id="cfg-maj4" onclick="setCfg('major',4)">4 קלפים</button>
+    <button class="cfg-btn active" id="cfg-maj5" onclick="setCfg('major',5)">5 קלפים</button>
+  </div>
+  <div class="setting-group">
+    <label>1NT:</label>
+    <button class="cfg-btn" id="cfg-nt12" onclick="setCfg('nt','12-14')">12-14</button>
+    <button class="cfg-btn active" id="cfg-nt15" onclick="setCfg('nt','15-17')">15-17</button>
+  </div>
+  <div class="setting-group">
+    <label>מינור:</label>
+    <button class="cfg-btn" id="cfg-min2" onclick="setCfg('minor',2)">2 קלפים</button>
+    <button class="cfg-btn active" id="cfg-min3" onclick="setCfg('minor',3)">3 קלפים</button>
+  </div>
+</div>
+
+<div class="main-grid">
+  <div class="player-panel panel-north" id="panel-N"></div>
+  <div class="player-panel panel-east"  id="panel-E"></div>
+  <div class="player-panel panel-south" id="panel-S"></div>
+  <div class="player-panel panel-west"  id="panel-W"></div>
+</div>
+
+<div class="dealer-row">
+  <span>דילר:</span>
+  <label class="dealer-opt"><input type="radio" name="dealer" value="N"> צפון</label>
+  <label class="dealer-opt"><input type="radio" name="dealer" value="E"> מזרח</label>
+  <label class="dealer-opt"><input type="radio" name="dealer" value="S"> דרום</label>
+  <label class="dealer-opt"><input type="radio" name="dealer" value="W"> מערב</label>
+  <label class="dealer-opt"><input type="radio" name="dealer" value="—" checked> ללא</label>
+</div>
+
+<div class="actions">
+  <div class="boards-row">
+    <label>לוחות:</label>
+    <input type="number" id="num-boards" value="4" min="1" max="36">
+  </div>
+  <button class="btn-deal" onclick="dealBoards()">⚡ צור לוחות</button>
+  <button class="btn-reset" onclick="resetAll()">אפס</button>
+</div>
+<div class="error-msg" id="error-msg"></div>
+
+<script>
+  const cfg = { majorLen:5, ntMin:15, ntMax:17, minorLen:3 };
+
+  function setCfg(key, val) {
+    if (key==='major') {
+      cfg.majorLen=val;
+      document.getElementById('cfg-maj4').classList.toggle('active',val===4);
+      document.getElementById('cfg-maj5').classList.toggle('active',val===5);
+    } else if (key==='nt') {
+      if (val==='12-14'){cfg.ntMin=12;cfg.ntMax=14;}else{cfg.ntMin=15;cfg.ntMax=17;}
+      document.getElementById('cfg-nt12').classList.toggle('active',val==='12-14');
+      document.getElementById('cfg-nt15').classList.toggle('active',val==='15-17');
+    } else if (key==='minor') {
+      cfg.minorLen=val;
+      document.getElementById('cfg-min2').classList.toggle('active',val===2);
+      document.getElementById('cfg-min3').classList.toggle('active',val===3);
+    }
+  }
+
+  const PARTNER  = { N:'S', S:'N', E:'W', W:'E' };
+  const NAMES    = { N:'צפון (N)', E:'מזרח (E)', S:'דרום (S)', W:'מערב (W)' };
+  const SUIT_NAME= { '♥':'לב','♠':'עלה','♣':'תלתן','♦':'יהלום' };
+  const STRENGTH_OPENER = { weak:[12,14], mid:[15,17], strong:[18,21] };
+  const STRENGTH_RESP   = { weak:[6,9],  mid:[10,12], strong:[13,37] };
+
+  function initState() {
+    return {
+      type:'free', hcpMin:0, hcpMax:37, commands:'', label:'',
+      mode:'free',
+      // opener
+      strengthKey:null, openKey:null, openSuit:null, openType:null, pendingSuit:null,
+      // responder
+      respStrength:null,  // 'weak'|'mid'|'strong'
+      respType:null,      // 'support'|'1nt'|'1s'|'1h'|'2c'|'2d'|'supp-minor'|'stayman'|'trans-h'|'trans-s'|'2nt'
+      respSuit:null,      // suit for stayman/transfer/specific
+      pendingResp:null    // waiting for suit pick in responder
+    };
+  }
+
+  const pState = { N:initState(), E:initState(), S:initState(), W:initState() };
+
+  // ── Recompute opener constraints ──────────────────────────────────────────
+  function recomputeOpener(p) {
+    const st = pState[p];
+    const [sMin,sMax] = st.strengthKey ? STRENGTH_OPENER[st.strengthKey] : [12,21];
+
+    if (st.openKey==='nt') {
+      st.type='balanced'; st.hcpMin=cfg.ntMin; st.hcpMax=cfg.ntMax; st.commands='';
+      st.label=`פתיחה 1NT — ${cfg.ntMin}-${cfg.ntMax} נקודות`;
+      return;
+    }
+    if (st.openKey==='major'||st.openKey==='minor') {
+      const minLen = st.openKey==='major' ? cfg.majorLen : cfg.minorLen;
+      const sn = SUIT_NAME[st.openSuit]||'';
+      st.type='free'; st.hcpMin=sMin; st.hcpMax=sMax;
+      if (st.openKey==='minor') {
+        const other = st.openSuit==='♦' ? '♣' : '♦';
+        st.commands=`${minLen}+${st.openSuit}|${st.openSuit}>=${other}|no5major`;
+      } else {
+        st.commands=`${minLen}+${st.openSuit}`;
+      }
+      st.label=`פתיחה ב${sn} — ${minLen}+ קלפים, ${sMin}-${sMax} נקודות`;
+      return;
+    }
+    if (st.strengthKey) {
+      st.type='free'; st.hcpMin=sMin; st.hcpMax=sMax; st.commands='';
+      st.label=`כוח פותח ${sMin}-${sMax} נקודות`;
+      return;
+    }
+    st.type='free'; st.hcpMin=0; st.hcpMax=37; st.commands=''; st.label='';
+  }
+
+  // ── Recompute responder constraints ───────────────────────────────────────
+  function recomputeResponder(p) {
+    const st = pState[p];
+    const openSuit = pState[PARTNER[p]].openSuit;
+
+    // HCP from strength (always from responder strength buttons)
+    const [hMin,hMax] = st.respStrength ? STRENGTH_RESP[st.respStrength] : [0,37];
+
+    // Distribution/type from respType
+    let type='free', commands='';
+    const rt = st.respType;
+
+    if (rt==='support')    { commands=`3+${openSuit}`; }
+    if (rt==='supp-minor') { commands=`5+${openSuit}`; }
+    if (rt==='1nt')        { type='balanced'; }
+    if (rt==='1h')         { commands='4+♥'; }
+    if (rt==='1s')         { commands='4+♠'; }
+    if (rt==='2c')         { commands='4+♣'; }
+    if (rt==='2d')         { commands='4+♦'; }
+    if (rt==='stayman')    { commands=`4+${st.respSuit||'♥'}`; }
+    if (rt==='trans-h')    { commands='5+♥'; }
+    if (rt==='trans-s')    { commands='5+♠'; }
+    if (rt==='2nt')        { type='balanced'; }
+
+    st.type=type; st.hcpMin=hMin; st.hcpMax=hMax; st.commands=commands;
+
+    // Build label
+    const strengthLabel = st.respStrength
+      ? ({weak:'חלש 6-9',mid:'בינוני 10-12',strong:'חזק 13+'})[st.respStrength]
+      : '';
+    const typeLabel = buildRespTypeLabel(p);
+    if (strengthLabel && typeLabel) st.label=`${typeLabel} — ${strengthLabel}`;
+    else if (strengthLabel)         st.label=`משיב ${strengthLabel}`;
+    else if (typeLabel)             st.label=typeLabel;
+    else                            st.label='';
+  }
+
+  function buildRespTypeLabel(p) {
+    const st = pState[p];
+    const openSuit = pState[PARTNER[p]].openSuit;
+    const sn = openSuit ? (SUIT_NAME[openSuit]||'') : '';
+    const rt = st.respType;
+    if (rt==='support')    return `תמיכה ב${openSuit}${sn} (3+)`;
+    if (rt==='supp-minor') return `תמיכה ב${openSuit}${sn} (5+)`;
+    if (rt==='1nt')        return '1NT — מאוזנת';
+    if (rt==='1h')         return '1♥ — 4+♥';
+    if (rt==='1s')         return '1♠ — 4+♠';
+    if (rt==='2c')         return '2♣ — 4+♣';
+    if (rt==='2d')         return '2♦ — 4+♦';
+    if (rt==='stayman')    return `סטיימן — 4+${st.respSuit||''}`;
+    if (rt==='trans-h')    return 'טרנספר ♥ — 5+ לב';
+    if (rt==='trans-s')    return 'טרנספר ♠ — 5+ עלה';
+    if (rt==='2nt')        return '2NT — מאוזנת';
+    return '';
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function renderPanel(p) {
+    const el = document.getElementById(`panel-${p}`);
+    const st = pState[p];
+    const roleTag = st.mode==='opener'
+      ? '<span class="role-tag opener">פותח</span>'
+      : st.mode==='responder'
+        ? '<span class="role-tag responder">משיב</span>'
+        : '<span class="role-tag">חופשי</span>';
+    const body = st.mode==='responder' ? buildRespPanel(p) : buildOpenPanel(p);
+    const statusCls = st.mode==='opener'?'set-opener': st.mode==='responder'&&st.label?'set-responder':'';
+    el.innerHTML=`<div class="panel-header"><span class="panel-name">${NAMES[p]}</span>${roleTag}</div>${body}<div class="status-box ${statusCls}">${st.label||'לא הוגדר'}</div>`;
+  }
+
+  // ── Opener panel ──────────────────────────────────────────────────────────
+  function buildOpenPanel(p) {
+    const st = pState[p];
+    const as = k => st.strengthKey===k?' active':'';
+    const ao = k => st.openKey===k?' active':'';
+    const ps = st.pendingSuit;
+
+    let picker='';
+    if (ps==='major') picker=`<div class="suit-row"><span class="suit-row-label">בחר צבע:</span><button class="spbtn he" onclick="applyOpening('${p}','major','♥')">♥</button><button class="spbtn sp" onclick="applyOpening('${p}','major','♠')">♠</button></div>`;
+    if (ps==='minor') picker=`<div class="suit-row"><span class="suit-row-label">בחר צבע:</span><button class="spbtn cl" onclick="applyOpening('${p}','minor','♣')">♣</button><button class="spbtn di" onclick="applyOpening('${p}','minor','♦')">♦</button></div>`;
+
+    return `
+      <div class="group-label">כוח</div>
+      <div class="btn-group">
+        <button class="qbtn${as('weak')}"   onclick="setOpenerStrength('${p}','weak')">חלש 12-14</button>
+        <button class="qbtn${as('mid')}"    onclick="setOpenerStrength('${p}','mid')">בינוני 15-17</button>
+        <button class="qbtn${as('strong')}" onclick="setOpenerStrength('${p}','strong')">חזק 18-21</button>
+      </div>
+      <div class="group-label">פתיחה</div>
+      <div class="btn-group">
+        <button class="qbtn${ao('major')}" onclick="pickOpenSuit('${p}','major')">פתיחה במיגור</button>
+        <button class="qbtn${ao('minor')}" onclick="pickOpenSuit('${p}','minor')">פתיחה במינור</button>
+        <button class="qbtn${ao('nt')}"    onclick="applyOpening('${p}','nt',null)">פתיחה 1NT</button>
+      </div>
+      ${picker}`;
+  }
+
+  // ── Responder panel ───────────────────────────────────────────────────────
+  function buildRespPanel(p) {
+    const st      = pState[p];
+    const partner = PARTNER[p];
+    const openType= pState[partner].openType;
+    const openSuit= pState[partner].openSuit;
+    const rs = k => st.respStrength===k?' active':'';
+    const rt = k => st.respType===k?' active':'';
+    const pr = st.pendingResp;
+
+    // Suit picker for 2♣/2♦ or stayman
+    let picker='';
+    if (pr==='2x') picker=`<div class="suit-row"><span class="suit-row-label">בחר צבע:</span><button class="spbtn cl" onclick="setRespType('${p}','2c','♣')">♣</button><button class="spbtn di" onclick="setRespType('${p}','2d','♦')">♦</button></div>`;
+    if (pr==='stayman') picker=`<div class="suit-row"><span class="suit-row-label">4 קלפים ב:</span><button class="spbtn he" onclick="setRespType('${p}','stayman','♥')">♥</button><button class="spbtn sp" onclick="setRespType('${p}','stayman','♠')">♠</button></div>`;
+
+    // Context-specific type buttons
+    let typeButtons='';
+    if (openType==='major') {
+      const sn = SUIT_NAME[openSuit]||'';
+      const has1S = openSuit==='♥';
+      typeButtons=`
+        <div class="group-label">סוג תשובה</div>
+        <div class="btn-group">
+          <button class="qbtn resp${rt('support')}" onclick="setRespType('${p}','support','${openSuit}')">תמיכה ב${openSuit}${sn}</button>
+          <button class="qbtn resp${rt('1nt')}"     onclick="setRespType('${p}','1nt',null)">1NT</button>
+          ${has1S?`<button class="qbtn resp${rt('1s')}" onclick="setRespType('${p}','1s','♠')">1♠ (4+♠)</button>`:''}
+          <button class="qbtn resp${rt('2x')}" onclick="pickResp2('${p}')">2♣/2♦</button>
+        </div>`;
+    } else if (openType==='minor') {
+      const sn = SUIT_NAME[openSuit]||'';
+      typeButtons=`
+        <div class="group-label">סוג תשובה</div>
+        <div class="btn-group">
+          <button class="qbtn resp${rt('1h')}"         onclick="setRespType('${p}','1h','♥')">1♥ (4+♥)</button>
+          <button class="qbtn resp${rt('1s')}"         onclick="setRespType('${p}','1s','♠')">1♠ (4+♠)</button>
+          <button class="qbtn resp${rt('1nt')}"        onclick="setRespType('${p}','1nt',null)">1NT</button>
+          <button class="qbtn resp${rt('supp-minor')}" onclick="setRespType('${p}','supp-minor','${openSuit}')">תמיכה ב${openSuit}${sn} (5+)</button>
+          <button class="qbtn resp${rt('2nt')}"        onclick="setRespType('${p}','2nt',null)">2NT</button>
+        </div>`;
+    } else if (openType==='nt') {
+      typeButtons=`
+        <div class="group-label">סוג תשובה</div>
+        <div class="btn-group">
+          <button class="qbtn resp${rt('2nt')}"    onclick="setRespType('${p}','2nt',null)">2NT</button>
+          <button class="qbtn resp${rt('stayman')}" onclick="pickStayman('${p}')">סטיימן</button>
+          <button class="qbtn resp${rt('trans-h')}" onclick="setRespType('${p}','trans-h','♥')">טרנספר ♥</button>
+          <button class="qbtn resp${rt('trans-s')}" onclick="setRespType('${p}','trans-s','♠')">טרנספר ♠</button>
+        </div>`;
+    }
+
+    return `
+      <div class="group-label">כוח משיב</div>
+      <div class="btn-group">
+        <button class="qbtn resp${rs('weak')}"   onclick="setRespStrength('${p}','weak')">חלש 6-9</button>
+        <button class="qbtn resp${rs('mid')}"    onclick="setRespStrength('${p}','mid')">בינוני 10-12</button>
+        <button class="qbtn resp${rs('strong')}" onclick="setRespStrength('${p}','strong')">חזק 13+</button>
+      </div>
+      ${typeButtons}
+      ${picker}
+      <button class="btn-back" onclick="clearResponder('${p}')">↩ חזור למצב פותח</button>`;
+  }
+
+  // ── Opener actions ────────────────────────────────────────────────────────
+  function setOpenerStrength(p, key) {
+    const partner = PARTNER[p];
+    pState[p].strengthKey = pState[p].strengthKey===key ? null : key;
+    if (!pState[p].openKey && pState[partner].mode==='responder') {
+      pState[partner]=initState(); renderPanel(partner);
+    }
+    pState[p].mode = pState[p].openKey ? 'opener' : 'free';
+    recomputeOpener(p); renderPanel(p);
+  }
+
+  function pickOpenSuit(p, type) {
+    pState[p].openKey=type; pState[p].pendingSuit=type; pState[p].mode='opener';
+    recomputeOpener(p); renderPanel(p);
+  }
+
+  function applyOpening(p, openType, suit) {
+    const partner=PARTNER[p];
+    pState[p].openKey=openType; pState[p].openSuit=suit; pState[p].openType=openType;
+    pState[p].pendingSuit=null; pState[p].mode='opener';
+    recomputeOpener(p);
+    pState[partner]={...initState(), mode:'responder', openSuit:suit, openType};
+    renderPanel(p); renderPanel(partner);
+  }
+
+  // ── Responder actions ─────────────────────────────────────────────────────
+  function setRespStrength(p, key) {
+    pState[p].respStrength = pState[p].respStrength===key ? null : key;
+    recomputeResponder(p); renderPanel(p);
+  }
+
+  function setRespType(p, type, suit) {
+    pState[p].respType=type; pState[p].respSuit=suit; pState[p].pendingResp=null;
+    recomputeResponder(p); renderPanel(p);
+  }
+
+  function pickResp2(p) {
+    pState[p].respType='2x'; pState[p].pendingResp='2x'; renderPanel(p);
+  }
+
+  function pickStayman(p) {
+    pState[p].respType='stayman'; pState[p].pendingResp='stayman'; renderPanel(p);
+  }
+
+  function clearResponder(p) {
+    const partner=PARTNER[p];
+    pState[p]=initState();
+    pState[partner].openKey=null; pState[partner].openSuit=null;
+    pState[partner].openType=null; pState[partner].pendingSuit=null;
+    pState[partner].mode='free';
+    recomputeOpener(partner);
+    renderPanel(p); renderPanel(partner);
+  }
+
+  function resetAll() {
+    ['N','E','S','W'].forEach(p=>{pState[p]=initState();renderPanel(p);});
+    document.getElementById('error-msg').style.display='none';
+  }
+
+  // ── Engine ────────────────────────────────────────────────────────────────
+  const SUITS=['♠','♥','♦','♣'];
+  const RANKS=['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+  const HCP_VAL={A:4,K:3,Q:2,J:1};
+  const MAX_TRIES=50000;
+
+  function createDeck(){const d=[];for(const s of SUITS)for(const r of RANKS)d.push({s,r});return d;}
+  function shuffle(deck){const d=[...deck];for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}return d;}
+  function hcp(hand){return hand.reduce((n,c)=>n+(HCP_VAL[c.r]||0),0);}
+  function sortedLen(hand){return SUITS.map(s=>hand.filter(c=>c.s===s).length).sort((a,b)=>b-a);}
+  function eq(a,b){return a.every((v,i)=>v===b[i]);}
+  function checkType(hand,type){
+    if(!type||type==='free')return true;
+    const sl=sortedLen(hand);
+    if(type==='balanced')return[[4,3,3,3],[4,4,3,2],[5,3,3,2]].some(p=>eq(sl,p));
+    if(type==='semi')return[[6,3,2,2],[5,3,3,2],[5,4,2,2]].some(p=>eq(sl,p));
+    return true;
+  }
+
+  function parseCommands(text){
+    if(!text.trim())return{cmds:[],errors:[]};
+    const parts=text.split('|').map(s=>s.trim()).filter(s=>s);
+    const cmds=[],errors=[];
+    for(const part of parts){
+      let m=part.match(/^(\d+)(\+)?\s*([♠♥♦♣])$/);
+      if(m){cmds.push({t:'len',suit:m[3],n:+m[1],plus:!!m[2]});continue;}
+      m=part.match(/^([♠♥♦♣])>=([♠♥♦♣])$/);
+      if(m){cmds.push({t:'longer',s1:m[1],s2:m[2]});continue;}
+      if(part==='no5major'){cmds.push({t:'no5major'});continue;}
+      m=part.match(/^5-5\s*([♠♥♦♣])\s*([♠♥♦♣])$/);
+      if(m){cmds.push({t:'55',s1:m[1],s2:m[2]});continue;}
+      m=part.match(/^has\s+([AKQJT2-9]+)([♠♥♦♣])$/);
+      if(m){cmds.push({t:'has',ranks:m[1].split(''),suit:m[2]});continue;}
+      m=part.match(/^no\s+(void|singleton)$/i);
+      if(m){cmds.push({t:'no-'+m[1].toLowerCase()});continue;}
+      m=part.match(/^stopper\s+([♠♥♦♣])$/);
+      if(m){cmds.push({t:'stopper',suit:m[1]});continue;}
+      errors.push(part);
+    }
+    return{cmds,errors};
+  }
+
+  function checkCommands(hand,cmds){
+    for(const c of cmds){
+      if(c.t==='len'){const len=hand.filter(x=>x.s===c.suit).length;if(c.plus?len<c.n:len!==c.n)return false;}
+      if(c.t==='longer'){const l1=hand.filter(x=>x.s===c.s1).length;const l2=hand.filter(x=>x.s===c.s2).length;if(l1<l2)return false;}
+      if(c.t==='no5major'){if(hand.filter(x=>x.s==='♥').length>=5)return false;if(hand.filter(x=>x.s==='♠').length>=5)return false;}
+      if(c.t==='55'){if(hand.filter(x=>x.s===c.s1).length<5)return false;if(hand.filter(x=>x.s===c.s2).length<5)return false;}
+      if(c.t==='has'){for(const r of c.ranks)if(!hand.some(x=>x.s===c.suit&&x.r===r))return false;}
+      if(c.t==='no-void'){if(SUITS.some(s=>hand.filter(x=>x.s===s).length===0))return false;}
+      if(c.t==='no-singleton'){if(SUITS.some(s=>hand.filter(x=>x.s===s).length===1))return false;}
+      if(c.t==='stopper'){const sc=hand.filter(x=>x.s===c.suit).map(x=>x.r);const ok=sc.includes('A')||(sc.includes('K')&&sc.length>=2)||(sc.includes('Q')&&sc.length>=3)||(sc.includes('J')&&sc.length>=4);if(!ok)return false;}
+    }
+    return true;
+  }
+
+  function dealOneBoard(){
+    const C={};
+    for(const p of['N','E','S','W']){
+      const st=pState[p];
+      const{cmds,errors}=parseCommands(st.commands||'');
+      if(errors.length)return{error:`שגיאה ב-${p}: ${errors.join(', ')}`};
+      C[p]={type:st.type,min:st.hcpMin,max:st.hcpMax,cmds};
+    }
+    const hasLen=['N','E','S','W'].some(p=>C[p].cmds.some(c=>c.t==='55'||c.t==='len'));
+    if(hasLen){
+      for(let attempt=0;attempt<10000;attempt++){
+        const bySuit={};
+        SUITS.forEach(s=>{bySuit[s]=shuffle(createDeck().filter(c=>c.s===s));});
+        const hands={N:[],E:[],S:[],W:[]};let ok=true;
+        for(const p of['N','E','S','W']){
+          const cmd55=C[p].cmds.find(x=>x.t==='55');
+          const lenCmds=C[p].cmds.filter(x=>x.t==='len');
+          if(!cmd55&&!lenCmds.length)continue;
+          if(cmd55){
+            if(bySuit[cmd55.s1].length<5||bySuit[cmd55.s2].length<5){ok=false;break;}
+            hands[p].push(...bySuit[cmd55.s1].splice(0,5));
+            hands[p].push(...bySuit[cmd55.s2].splice(0,5));
+            const others=SUITS.filter(s=>s!==cmd55.s1&&s!==cmd55.s2);
+            const pool=shuffle([...bySuit[others[0]],...bySuit[others[1]]]);
+            if(pool.length<3){ok=false;break;}
+            const fill3=pool.slice(0,3);hands[p].push(...fill3);
+            for(const card of fill3){const idx=bySuit[card.s].findIndex(c=>c.r===card.r&&c.s===card.s);if(idx!==-1)bySuit[card.s].splice(idx,1);}
+          }else{
+            for(const lc of lenCmds){
+              const have=hands[p].filter(x=>x.s===lc.suit).length;const need=lc.n-have;
+              if(need>0){if(bySuit[lc.suit].length<need){ok=false;break;}hands[p].push(...bySuit[lc.suit].splice(0,need));}
+              else if(need<0&&!lc.plus){ok=false;break;}
+            }
+          }
+          if(!ok)break;
+        }
+        if(!ok)continue;
+        const remaining=shuffle([...bySuit['♠'],...bySuit['♥'],...bySuit['♦'],...bySuit['♣']]);
+        let ptr=0;
+        for(const p of['N','E','S','W']){const need=13-hands[p].length;if(need<0||ptr+need>remaining.length){ok=false;break;}hands[p].push(...remaining.slice(ptr,ptr+need));ptr+=need;}
+        if(!ok)continue;
+        let allOk=true;
+        for(const p of['N','E','S','W']){const ph=hands[p],c=C[p];if(ph.length!==13||!checkType(ph,c.type)||hcp(ph)<c.min||hcp(ph)>c.max||!checkCommands(ph,c.cmds)){allOk=false;break;}}
+        if(allOk)return hands;
+      }
+      return{error:'לא נמצאה חלוקה. נסי להקל על האילוצים.'};
+    }
+    const deck=createDeck();
+    for(let i=0;i<MAX_TRIES;i++){
+      const d=shuffle(deck);
+      const h={N:d.slice(0,13),E:d.slice(13,26),S:d.slice(26,39),W:d.slice(39,52)};
+      let ok=true;
+      for(const p of['N','E','S','W']){const ph=h[p],c=C[p];if(!checkType(ph,c.type)||hcp(ph)<c.min||hcp(ph)>c.max||!checkCommands(ph,c.cmds)){ok=false;break;}}
+      if(ok)return h;
+    }
+    return{error:'לא נמצאה חלוקה אחרי '+MAX_TRIES+' ניסיונות.'};
+  }
+
+  // ── Print ─────────────────────────────────────────────────────────────────
+  function fmtSuits(hand){
+    return SUITS.map(s=>{
+      const cards=hand.filter(c=>c.s===s).map(c=>c.r);
+      cards.sort((a,b)=>RANKS.indexOf(a)-RANKS.indexOf(b));
+      const cls=({'♠':'sp','♥':'he','♦':'di','♣':'cl'})[s];
+      return `<span class="sr"><span class="${cls}">${s}</span> ${cards.length?cards.join(''):'—'}</span>`;
+    }).join('');
+  }
+
+  function boardHTML(hands,num,dealer){
+    const dl=dealer&&dealer!=='—'?` &nbsp;|&nbsp; Dealer: ${dealer}`:'';
+    const N=fmtSuits(hands.N), S=fmtSuits(hands.S), W=fmtSuits(hands.W), E=fmtSuits(hands.E);
+    return `<div class="board">
+      <div class="board-header">Board ${num}${dl}</div>
+      <div class="hand-grid">
+        <div class="cell-n"><div class="hl">${N}</div></div>
+        <div class="cell-w">${W}</div>
+        <div class="cell-c"><div class="compass-wrap"><div class="compass-circle"></div><span class="cn">N</span><span class="cw">W</span><span class="ce">E</span><span class="cs">S</span></div></div>
+        <div class="cell-e">${E}</div>
+        <div class="cell-s"><div class="hl">${S}</div></div>
+      </div>
+      <table class="score-table"><thead><tr><th>N</th><th>E</th><th>S</th><th>W</th></tr></thead><tbody>${'<tr><td></td><td></td><td></td><td></td></tr>'.repeat(5)}</tbody></table>
+    </div>`;
+  }
+
+  function dealBoards(){
+    const n=parseInt(document.getElementById('num-boards').value)||1;
+    const dealer=(document.querySelector('input[name="dealer"]:checked')||{}).value||'—';
+    const errEl=document.getElementById('error-msg');errEl.style.display='none';
+    const boards=[];
+    for(let i=0;i<n;i++){const h=dealOneBoard();if(h.error){errEl.textContent=h.error;errEl.style.display='block';return;}boards.push(h);}
+    openPrint(boards,dealer);
+  }
+
+  function openPrint(boards,dealer){
+    const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:14px;background:#fff}.page{width:180mm;height:255mm;margin:5mm auto;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:5mm;page-break-after:always}.board{border:1.5px solid #333;border-radius:3px;padding:6px;background:#fff}.board-header{text-align:center;font-size:12px;font-weight:bold;border-bottom:1px solid #bbb;padding-bottom:3px;margin-bottom:4px}.hand-grid{display:grid;direction:ltr;grid-template-areas:". north ." "west center east" ". south .";grid-template-columns:1fr 62px 1fr;grid-template-rows:auto auto auto;align-items:center;margin-top:-7px}.cell-n{grid-area:north;text-align:center;padding:3px 0;transform:translateY(8px)}.cell-s{grid-area:south;text-align:center;padding:3px 0;transform:translateY(-8px)}.cell-w{grid-area:west;text-align:left;padding:4px 6px 4px 2px;transform:translateX(23px)}.cell-e{grid-area:east;text-align:left;padding:4px 2px 4px 6px}.cell-c{grid-area:center;display:flex;align-items:center;justify-content:center;padding:4px 0}.cell-n .hl,.cell-s .hl{display:inline-block;text-align:left}.sr{display:block;line-height:1.5;white-space:nowrap;font-size:15px;font-weight:bold}.sp{color:#111;font-weight:bold}.he{color:#cc1111;font-weight:bold}.di{color:#cc1111;font-weight:bold}.cl{color:#111;font-weight:bold}.compass-wrap{width:58px;height:58px;position:relative;display:flex;align-items:center;justify-content:center}.compass-circle{width:54px;height:54px;border:2px solid #1a4a2e;border-radius:6px;position:absolute;background:radial-gradient(ellipse at 40% 35%,#4aaa5a 0%,#2d8a3e 55%,#1a5a28 100%);box-shadow:inset 0 2px 8px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.35),2px 3px 7px rgba(0,0,0,0.4)}.cn,.cs,.cw,.ce{position:absolute;font-size:12px;font-weight:bold;line-height:1;z-index:1;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6)}.cn{top:5px;left:50%;transform:translateX(-50%)}.cs{bottom:5px;left:50%;transform:translateX(-50%)}.cw{left:5px;top:50%;transform:translateY(-50%)}.ce{right:5px;top:50%;transform:translateY(-50%)}.score-table{border-collapse:collapse;width:100%;table-layout:fixed;margin-top:5px}.score-table th,.score-table td{border:1px solid #555;width:25%;height:18px;line-height:18px;text-align:center;vertical-align:middle;padding:0;font-size:11px;font-weight:bold;box-sizing:border-box}.score-table th{background:#eee}.pbtn{display:block;margin:8px auto 12px;padding:8px 28px;font-size:13pt;background:#1a4a2e;color:#f0e6c8;border:none;border-radius:8px;cursor:pointer}@media print{.pbtn{display:none}.compass-circle{background:#fff!important;box-shadow:none!important;border-color:#333!important}.cn,.cs,.cw,.ce{color:#000!important;text-shadow:none!important}@page{size:A4 portrait;margin:5mm}}`;
+    let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>לוחות</title><style>${css}</style></head><body><button class="pbtn" onclick="window.print()">🖨 הדפס</button>`;
+    for(let i=0;i<boards.length;i+=4){html+='<div class="page">';for(let j=0;j<4&&i+j<boards.length;j++)html+=boardHTML(boards[i+j],i+j+1,dealer);html+='</div>';}
+    html+='</body></html>';
+    const win=window.open('','_blank');
+    if(win){win.document.write(html);win.document.close();}
+    else{let fr=document.getElementById('_pfr');if(!fr){fr=document.createElement('iframe');fr.id='_pfr';fr.style.display='none';document.body.appendChild(fr);}fr.srcdoc=html;}
+  }
+
+  ['N','E','S','W'].forEach(renderPanel);
+</script>
+</body>
+</html>

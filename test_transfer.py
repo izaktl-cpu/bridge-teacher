@@ -1,0 +1,117 @@
+# -*- coding: utf-8 -*-
+import sys, io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.path.insert(0, 'D:/bridge-teacher')
+
+from bidding_engine import compute_auction, hcp, sl
+from bridge_teacher import cfg
+
+cfg['majorLen']=5; cfg['ntMin']=15; cfg['ntMax']=17; cfg['minorLen']=3
+
+errors = []
+
+def make_hand(spades='', hearts='', diamonds='', clubs=''):
+    hand = []
+    for suit, cards in [('♠',spades),('♥',hearts),('♦',diamonds),('♣',clubs)]:
+        for r in cards:
+            hand.append({'s':suit,'r':r})
+    return hand
+
+EW_E = make_hand('T97','976','T987','876')   # 0 נק', לא מאוברקל
+EW_W = make_hand('862','543','654','T932')   # 0 נק'
+
+def run(name, hands, dealer, expected_ns):
+    c = dict(cfg)
+    auction, players = compute_auction(hands, dealer, c)
+    ns_bids = [auction[i] for i in range(len(auction)) if players[i] in ('N','S')]
+    if ns_bids == expected_ns:
+        print(f'[OK] {name}')
+    else:
+        print(f'[FAIL] {name}')
+        print(f'  צפוי:   {expected_ns}')
+        print(f'  קיבלנו: {ns_bids}')
+        errors.append(name)
+
+# ── TEST 1: 1NT → 2♦ → 2♥ → פס (5♥, 6 נק') ──────────────────────────────────
+run('1NT → 2♦ → 2♥ → פס (חלש)',
+    {'N': make_hand('AK3','Q42','AJ32','J54'),   # 15 נק', מאוזן
+     'S': make_hand('65','KJ876','T98','Q62'),    # 6 נק', 5♥, 2♠
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♦','2♥','פס'])
+
+# ── TEST 2: 1NT → 2♦ → 2♥ → 2NT → 4♥ (הזמנה, N=17 + 3♥) ────────────────────
+run('1NT → 2♦ → 2♥ → 2NT → 4♥ (N=17 + 3♥ מקבל עם פיט)',
+    {'N': make_hand('AKQ','K73','K432','Q54'),    # 17 נק', מאוזן, 3♥
+     'S': make_hand('65','QJ987','AT6','J32'),    # 8 נק', 5♥, 2♠
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♦','2♥','2NT','4♥','פס'])
+
+# ── TEST 3: 1NT → 2♦ → 2♥ → 2NT → 3♥ → פס (הזמנה, N=15 + 3♥) ──────────────
+run('1NT → 2♦ → 2♥ → 2NT → 3♥ (N=15 + 3♥ מראה פיט)',
+    {'N': make_hand('AQ3','K73','AJ32','J54'),    # 15 נק', מאוזן, 3♥
+     'S': make_hand('65','QJ987','K86','Q32'),    # 8 נק', 5♥, 2♠
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♦','2♥','2NT','3♥','פס'])
+
+# ── TEST 3b: 1NT → 2♦ → 2♥ → 2NT → פס (N=15, ללא פיט) ──────────────────────
+run('1NT → 2♦ → 2♥ → 2NT → פס (N=15 ללא פיט)',
+    {'N': make_hand('AQ32','J4','AJ32','K54'),    # 15 נק', מאוזן, 2♥
+     'S': make_hand('65','QJ987','K86','Q32'),    # 8 נק', 5♥
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♦','2♥','2NT','פס'])
+
+# ── TEST 4: 1NT → 2♦ → 2♥ → 3NT → פס (10+, 5♥, N עם 2♥) ───────────────────
+run('1NT → 2♦ → 2♥ → 3NT → פס (N אין 3♥)',
+    {'N': make_hand('AQ32','J4','AK32','J54'),    # 15 נק', 4♠+2♥
+     'S': make_hand('K65','QT987','Q65','K2'),    # 10 נק', 5♥, 3♠
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♦','2♥','3NT','פס'])
+
+# ── TEST 5: 1NT → 2♦ → 2♥ → 3NT → 4♥ (10+, 5♥, N עם 3♥) ───────────────────
+run('1NT → 2♦ → 2♥ → 3NT → 4♥ (N יש 3♥)',
+    {'N': make_hand('AQ3','J54','AK32','Q76'),    # 16 נק', 3♠+3♥
+     'S': make_hand('K65','QT987','Q65','K2'),    # 10 נק', 5♥, 3♠
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♦','2♥','3NT','4♥','פס'])
+
+# ── TEST 6: 1NT → 2♦ → 2♥ → 4♥ → פס (10+, 6♥) ──────────────────────────────
+run('1NT → 2♦ → 2♥ → 4♥ → פס (6♥ ישיר)',
+    {'N': make_hand('AQ3','J54','AK32','Q76'),    # 16 נק', מאוזן
+     'S': make_hand('65','KQJ987','32','AJ8'),    # 11 נק', 6♥
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♦','2♥','4♥','פס'])
+
+# ── TEST 7: 1NT → 2♦ → 2♥ → 2♠ → 4♠ (5♥+4♠, N יש 4♠) ─────────────────────
+run('1NT → 2♦ → 2♥ → 2♠ → 4♠ (שני מיגורים)',
+    {'N': make_hand('KQ32','J4','AK32','A54'),    # 17 נק', 4♠
+     'S': make_hand('AJ98','QT987','76','K6'),    # 10 נק', 5♥+4♠
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♦','2♥','2♠','4♠','פס'])
+
+# ── TEST 8: 1NT → 2♥ → 2♠ → פס (5♠, 6 נק') ─────────────────────────────────
+run('1NT → 2♥ → 2♠ → פס (5♠ חלש)',
+    {'N': make_hand('KQ3','A42','AJ32','J54'),    # 15 נק', מאוזן
+     'S': make_hand('AT876','63','Q76','862'),    # 6 נק', 5♠, 2♥
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♥','2♠','פס'])
+
+# ── TEST 9: 1NT → 2♥ → 2♠ → 3NT → פס (5♠, N עם 2♠) ────────────────────────
+run('1NT → 2♥ → 2♠ → 3NT → פס (N אין 3♠)',
+    {'N': make_hand('K4','AQ32','AJ32','Q54'),    # 16 נק', 2♠
+     'S': make_hand('QJT97','K65','T8','AQ2'),    # 12 נק', 5♠, 3♥
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♥','2♠','3NT','פס'])
+
+# ── TEST 10: 1NT → 2♥ → 2♠ → 3NT → 4♠ (5♠, N עם 3♠) ───────────────────────
+run('1NT → 2♥ → 2♠ → 3NT → 4♠ (N יש 3♠)',
+    {'N': make_hand('K54','AQ3','AK32','J76'),    # 17 נק', 3♠
+     'S': make_hand('QJT97','K65','T8','AQ2'),    # 12 נק', 5♠, 3♥
+     'E': EW_E, 'W': EW_W},
+    'N', ['1NT','2♥','2♠','3NT','4♠','פס'])
+
+# ── סיכום ─────────────────────────────────────────────────────────────────────
+print()
+if errors:
+    print(f'{len(errors)} שגיאות: {errors}')
+else:
+    print('כל בדיקות הטרנספר עברו!')
