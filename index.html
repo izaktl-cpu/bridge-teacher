@@ -716,3 +716,137 @@
       }
   })();
 </script>
+<script>
+  (function(){
+    window.HE2EN_DICT = {
+      "Bridge Teacher — עזרה למורה": "Bridge Teacher — Teacher Help",
+      "עזרה למורה": "Teacher Help",
+      "מיגור:": "Majors:", "מינור:": "Minors:", "דילר:": "Dealer:", "לוחות:": "Boards:",
+      "⚡ צור לוחות": "⚡ Generate Boards",
+      "4 קלפים": "4 cards", "5 קלפים": "5 cards", "2 קלפים": "2 cards", "3 קלפים": "3 cards",
+      "אפס": "Reset", "ללא": "None",
+      "צפון (N)": "North (N)", "מזרח (E)": "East (E)", "דרום (S)": "South (S)", "מערב (W)": "West (W)",
+      "צפון": "North", "מזרח": "East", "דרום": "South", "מערב": "West",
+      "לב": "Heart", "עלה": "Spade", "תלתן": "Club", "יהלום": "Diamond",
+      "חלש 6-9": "Weak 6-9", "בינוני 10-12": "Medium 10-12", "חזק 13+": "Strong 13+",
+      "חלש 12-14": "Weak 12-14", "בינוני 15-17": "Medium 15-17", "חזק 18-21": "Strong 18-21",
+      "חלש 0-7": "Weak 0-7", "חזק 10+": "Strong 10+", "בינוני 8-9": "Medium 8-9",
+      "חלש 6-10": "Weak 6-10", "בינוני 11-12": "Medium 11-12",
+      "חלש": "Weak", "בינוני": "Medium", "חזק": "Strong",
+      "פותח": "Opener", "משיב": "Responder", "חופשי": "Free", "לא הוגדר": "Not set",
+      "כוח": "Strength", "פתיחה": "Opening",
+      "פתיחה במיגור": "Open a Major", "פתיחה במינור": "Open a Minor", "פתיחה 1NT": "Open 1NT",
+      "בחר צבע:": "Choose suit:", "כוח פותח": "Opener strength", "נקודות": "points",
+      "פתיחה ב": "Opening ",
+      "1NT — מאוזנת": "1NT — balanced", "2NT — מאוזנת": "2NT — balanced", "מאוזנת": "balanced",
+      "כוח משיב": "Responder strength", "סוג תשובה": "Response type", "תמיכה ב": "Support in ",
+      "4 קלפים ב:": "4 cards in:", "קלפים ב": "cards in ", "קלפים": "cards",
+      "סטיימן": "Stayman", "טרנספר": "Transfer",
+      "טרנספר ♥ — 5+ לב": "Transfer ♥ — 5+ Hearts", "טרנספר ♠ — 5+ עלה": "Transfer ♠ — 5+ Spades",
+      "חזור למצב פותח": "Back to opener mode", "משיב ": "Responder ", "מגיב": "Responder",
+      "לוח": "Board",
+      "לא נמצאה חלוקה. נסי להקל על האילוצים.": "No deal found. Try relaxing the constraints.",
+      "לא נמצאה חלוקה אחרי ": "No deal found after ", " ניסיונות.": " attempts.",
+      "שגיאה ב": "Error in ", "הדפס": "Print", "לוחות": "Boards",
+      "מיגורים": "Major Suit Raises", "מינורים": "Minor Suits", "סלאם": "Slam",
+      "פתיחות 2 חלשות": "Weak Two Openings", "2♣ חזקה": "Strong 2♣",
+      "פס": "Pass", "סטיימן גיים": "Stayman Game", "סטיימן הזמנה": "Stayman Invitational",
+      "טרנספר ♥": "Transfer ♥", "טרנספר ♠": "Transfer ♠",
+      "1NT→4♣ ג׳רבר": "1NT→4♣ Gerber",
+      "2♥ → פס": "2♥ → Pass", "2♠ → פס": "2♠ → Pass",
+      "2♣ → 2♦ שלילי": "2♣ → 2♦ Negative", "2♣ → 2♥ חיובי": "2♣ → 2♥ Positive", "2♣ → 2♠ חיובי": "2♣ → 2♠ Positive",
+      "2NT → סטיימן": "2NT → Stayman", "2NT → טרנספר ♥": "2NT → Transfer ♥", "2NT → טרנספר ♠": "2NT → Transfer ♠",
+      "שלילי": "Negative", "חיובי": "Positive",
+      "רשימת שיעורים": "Lessons List", "מי פותח:": "Who opens:",
+      "הופעל שיעור: ": "Lesson activated: ", " | פותח: ": " | Opener: ", " — מגיב: ": " — Responder: ",
+      "השיעור \"": "The lesson \"",
+      "\" משתמש בסוג פתיחה שעדיין לא נתמך בכלי האינטרנט (2 חלש / 2 חזקה / פתיחת 2NT). ניתן להיעזר בתוכנה השולחנית לשיעור זה.": "\" uses an opening type not yet supported in the web tool (Weak 2 / Strong 2 / 2NT opening). Please use the desktop software for this lesson."
+    };
+
+   window.__currentLang = 'he';
+
+    function __walkTranslate(node, dict, keys, requireHebrew){
+      if (node.nodeType === 3) {
+        var txt = node.nodeValue;
+        if (requireHebrew && !/[\u0590-\u05FF]/.test(txt)) return;
+        var changed = txt;
+        for (var i=0;i<keys.length;i++){
+          var k = keys[i];
+          if (changed.indexOf(k) !== -1) changed = changed.split(k).join(dict[k]);
+        }
+        if (changed !== txt) node.nodeValue = changed;
+      } else if (node.nodeType === 1) {
+        for (var c = node.firstChild; c; c = c.nextSibling) __walkTranslate(c, dict, keys, requireHebrew);
+      }
+    }
+    window.__walkTranslate = __walkTranslate;
+
+    window.__applyBidiFix = function(root){
+      root = root || document.body;
+      var sel = 'button, .status-box, .panel-name';
+      var apply = function(el){ el.style.unicodeBidi = 'plaintext'; el.style.direction = 'ltr'; };
+      if (root.nodeType === 1) {
+        if (root.matches && root.matches(sel)) apply(root);
+        root.querySelectorAll(sel).forEach(apply);
+      }
+    };
+    window.__clearBidiFix = function(root){
+      root = root || document.body;
+      var sel = 'button, .status-box, .panel-name';
+      var clear = function(el){ el.style.unicodeBidi = ''; el.style.direction = ''; };
+      if (root.nodeType === 1) {
+        if (root.matches && root.matches(sel)) clear(root);
+        root.querySelectorAll(sel).forEach(clear);
+      }
+    };
+
+    window.__toggleLang = function(){
+      var HE2EN = window.HE2EN_DICT;
+      var EN2HE = {};
+      Object.keys(HE2EN).forEach(function(k){ EN2HE[HE2EN[k]] = k; });
+      var heKeys = Object.keys(HE2EN).sort(function(a,b){ return b.length - a.length; });
+      var enKeys = Object.keys(EN2HE).sort(function(a,b){ return b.length - a.length; });
+
+      if (window.__currentLang === 'he') {
+        window.__currentLang = 'en';
+        __walkTranslate(document.body, HE2EN, heKeys, true);
+        window.__applyBidiFix(document.body);
+      } else {
+        window.__currentLang = 'he';
+        __walkTranslate(document.body, EN2HE, enKeys, false);
+        window.__clearBidiFix(document.body);
+      }
+      var btn = document.getElementById('__langBtn');
+      if (btn) btn.textContent = window.__currentLang === 'he' ? 'English' : 'עברית';
+    };
+
+    window.__observer = new MutationObserver(function(mutations){
+      if (window.__currentLang !== 'en') return;
+      var HE2EN = window.HE2EN_DICT;
+      var heKeys = Object.keys(HE2EN).sort(function(a,b){ return b.length - a.length; });
+      mutations.forEach(function(mu){
+        mu.addedNodes.forEach(function(n){
+          __walkTranslate(n, HE2EN, heKeys, true);
+          window.__applyBidiFix(n);
+        });
+      });
+    });
+
+
+                                             function __initLangToggle(){
+                                               window.__observer.observe(document.body, {childList:true, subtree:true});
+                                               var btn = document.createElement('button');
+                                               btn.id = '__langBtn';
+                                               btn.textContent = 'English';
+                                               btn.style.cssText = 'position:fixed;top:10px;left:10px;z-index:9999;padding:6px 14px;border:none;border-radius:6px;background:#c8a84b;color:#1a4a2e;font-weight:bold;font-size:0.9rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.3);';
+                                               btn.addEventListener('click', window.__toggleLang);
+                                               document.body.appendChild(btn);
+                                             }
+
+   if (document.readyState === "loading") {
+     document.addEventListener("DOMContentLoaded", __initLangToggle);
+   } else {
+     __initLangToggle();
+   }
+  })();
+</script>
