@@ -720,9 +720,9 @@ function openBBO(){
   let blocks='';
   for(let bi=0;bi<BOARDS.length;bi++){
     const url=hvUrl(bi);
-    blocks+='<section><h2>לוח <bdi>'+(bi+1)+'</bdi>'
-      +'<span class="d">דילר <bdi>'+DLR+'</bdi></span>'
-      +'<a href="'+url+'" target="_blank" rel="noopener">פתח לבד ↗</a></h2>'
+    blocks+='<section><h2>'+(LANG==='en'?'Board':'לוח')+' <bdi>'+(bi+1)+'</bdi>'
+      +'<span class="d">'+(LANG==='en'?'Dealer':'דילר')+' <bdi>'+DLR+'</bdi></span>'
+      +'<a href="'+url+'" target="_blank" rel="noopener">'+(LANG==='en'?'Open ↗':'פתח לבד ↗')+'</a></h2>'
       +'<iframe src="'+url+'" loading="lazy"></iframe></section>';
   }
   const doc='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">'
@@ -735,7 +735,7 @@ function openBBO(){
     +'.d{font-size:13px;color:#8fd0a8;font-weight:normal}'
     +'h2 a{margin-inline-start:auto;font-size:13px;color:#9cf;text-decoration:none}'
     +'iframe{width:100%;height:78vh;border:0;border-radius:6px;background:#0a3d24}'
-    +'</style></head><body><h1>לוחות ל-BBO HandViewer — <bdi>'+BOARDS.length+'</bdi> לוחות</h1>'
+    +'</style></head><body><h1>'+(LANG==='en'?'Boards for BBO HandViewer — ':'לוחות ל-BBO HandViewer — ')+'<bdi>'+BOARDS.length+'</bdi>'+(LANG==='en'?' boards':' לוחות')+'</h1>'
     +blocks+'</body></html>';
   const w=window.open('','_blank');
   if(w){w.document.write(doc); w.document.close();}
@@ -751,15 +751,15 @@ function stripHand(bi,pl){
   }
   return html;
 }
-const WIND={N:'צפון',E:'מזרח',S:'דרום',W:'מערב'};
+const WIND=LANG==='en'?{N:'North',E:'East',S:'South',W:'West'}:{N:'צפון',E:'מזרח',S:'דרום',W:'מערב'};
 function openStrips(){
   let rows='';
   for(let bi=0;bi<BOARDS.length;bi++){
     let cols='';
     for(const pl of ['N','E','S','W'])
-      cols+='<div class="pos"><div class="pl"><span class="bd">לוח <bdi>'+(bi+1)+'</bdi></span>'
+      cols+='<div class="pos"><div class="pl"><span class="bd">'+(LANG==='en'?'Board':'לוח')+' <bdi>'+(bi+1)+'</bdi></span>'
             +'<span class="dline"><span class="dir">'+WIND[pl]+'</span>'
-            +(pl===DLR?'<span class="dlr">דילר</span>':'')+'</span></div>'
+            +(pl===DLR?'<span class="dlr">'+(LANG==='en'?'Dealer':'דילר')+'</span>':'')+'</span></div>'
             +stripHand(bi,pl)+'</div>';
     rows+='<div class="strip">'+cols+'</div>';
   }
@@ -780,7 +780,7 @@ function openStrips(){
     +'@media print{.tb{display:none}}@page{size:A4 portrait;margin:6mm}';
   const doc='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">'
     +'<title>סטריפים</title><style>'+css+'</style></head><body>'
-    +'<div class="tb"><button onclick="window.print()">🖨 הדפס סטריפים</button></div>'
+    +'<div class="tb"><button onclick="window.print()">'+(LANG==='en'?'🖨 Print Strips':'🖨 הדפס סטריפים')+'</button></div>'
     +rows+'</body></html>';
   const w=window.open('','_blank');
   if(w){w.document.write(doc); w.document.close();}
@@ -797,11 +797,16 @@ function openStrips(){
     for(let i=0;i<boards.length;i+=4){pages+='<div class="page">';for(let j=0;j<4&&i+j<boards.length;j++)pages+=webBoardCell(i+j+1,i+j,dealer);pages+='</div>';}
     const boardsData=boards.map(function(b){const o={};for(const p of ['N','E','S','W'])o[p]=b[p].map(function(c){return [c.s,c.r];});return o;});
     const boardsJson=JSON.stringify(boardsData);
+    const EN=(window.__currentLang==='en');
+    const tb=EN
+      ?`<button class="pbtn" onclick="window.print()">🖨 Print</button><button class="pbtn" onclick="openStrips()">📄 Strips</button><button class="pbtn" onclick="saveLIN()">💾 LIN</button><button class="pbtn" onclick="openBBO()">🌐 BBO</button>`
+      :`<button class="pbtn" onclick="window.print()">🖨 הדפס</button><button class="pbtn" onclick="openStrips()">📄 סטריפים</button><button class="pbtn" onclick="saveLIN()">💾 LIN</button><button class="pbtn" onclick="openBBO()">🌐 BBO</button>`;
+    const hint=EN?'Click a card, then another card on the same board to swap them. All outputs use the edited boards.':'לחצו קלף ואז קלף אחר באותו לוח כדי להחליף ביניהם. כל הפלטים משתמשים בלוחות שאחרי העריכה.';
     const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>לוחות</title><style>${WEB_CSS}</style></head><body>`
-      +`<div class="toolbar"><button class="pbtn" onclick="window.print()">🖨 הדפס</button><button class="pbtn" onclick="openStrips()">📄 סטריפים</button><button class="pbtn" onclick="saveLIN()">💾 LIN</button><button class="pbtn" onclick="openBBO()">🌐 BBO</button></div>`
-      +`<div class="hint">לחצו קלף ואז קלף אחר באותו לוח כדי להחליף ביניהם. כל הפלטים משתמשים בלוחות שאחרי העריכה.</div>`
+      +`<div class="toolbar">${tb}</div>`
+      +`<div class="hint">${hint}</div>`
       +pages
-      +`<scr`+`ipt>const BOARDS=${boardsJson};const DEALER=${JSON.stringify(dealer||'N')};const HV_BASE=${JSON.stringify(HV_BASE)};${WEB_SWAP_JS}${WEB_OUTPUT_JS}</scr`+`ipt></body></html>`;
+      +`<scr`+`ipt>const BOARDS=${boardsJson};const DEALER=${JSON.stringify(dealer||'N')};const HV_BASE=${JSON.stringify(HV_BASE)};const LANG=${JSON.stringify(EN?'en':'he')};${WEB_SWAP_JS}${WEB_OUTPUT_JS}</scr`+`ipt></body></html>`;
     const win=window.open('','_blank');
     if(win){win.document.write(html);win.document.close();}
     else{let fr=document.getElementById('_pfr');if(!fr){fr=document.createElement('iframe');fr.id='_pfr';fr.style.display='none';document.body.appendChild(fr);}fr.srcdoc=html;}
