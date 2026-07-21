@@ -19,7 +19,7 @@ NAMES    = {'N':'צפון (N)','E':'מזרח (E)','S':'דרום (S)','W':'מער
 MAX_TRIES = 200000
 
 STRENGTH_OPENER     = {'חלש 12-14':(12,14),'בינוני 15-17':(15,17),'חזק 18-21':(18,21)}
-STRENGTH_RESP       = {'חלש 6-9':(6,9),'בינוני 10-12':(10,12),'חזק 13+':(13,16)}
+STRENGTH_RESP       = {'פס 0-5':(0,5),'חלש 6-9':(6,9),'בינוני 10-12':(10,12),'חזק 13+':(13,16)}
 STRENGTH_RESP_NT    = {'חלש 0-7':(0,7),'בינוני 8-9':(8,9),'חזק 10+':(10,15),
                        'הזמנת סלאם 16-17':(16,17),'ג׳רבר 18+':(18,22)}
 STRENGTH_RESP_MINOR = {'חלש 6-10':(6,10),'בינוני 11-12':(11,12),'חזק 13+':(13,16)}
@@ -87,6 +87,76 @@ LESSON_GROUPS = [
         ('2NT → טרנספר ♥', '2nt_op', None, None, 'חלש 6-9',      'trans-h', '♥'),
         ('2NT → טרנספר ♠', '2nt_op', None, None, 'חלש 6-9',      'trans-s', '♠'),
     ]),
+]
+
+# ── Worksheet panel (new design) ────────────────────────────────────────────────
+# מבנה טור-אחד לפי הסדר שסוכם עם יצחק. כל כפתור מחזיק *רשימת תרחישים* בכוחות
+# מעורבים (טאפל = כמו LESSON_GROUPS בלי label). לחיצה מחוללת N לוחות שמתפרשים
+# על התרחישים (התלמיד מחליט). כותרת = ('h', title); כפתור = ('b', labelspec, scenarios)
+# כאשר labelspec הוא מחרוזת או ('split', heb, latin) (latin נעוץ שמאלה).
+_NAT_NT   = [('nt',None,None,'חלש 0-7',None,None),
+             ('nt',None,None,'בינוני 8-9','2nt',None),
+             ('nt',None,None,'חזק 10+','2nt',None)]
+_STAYMAN  = [('nt',None,None,'בינוני 8-9','stayman','♥'),
+             ('nt',None,None,'חזק 10+','stayman','♥')]
+_TRANSFER = [('nt',None,None,'חלש 0-7','trans-h','♥'),
+             ('nt',None,None,'חלש 0-7','trans-s','♠'),
+             ('nt',None,None,'בינוני 8-9','trans-h','♥'),
+             ('nt',None,None,'בינוני 8-9','trans-s','♠'),
+             ('nt',None,None,'חזק 10+','trans-h','♥'),
+             ('nt',None,None,'חזק 10+','trans-s','♠')]
+_2NT_ALL  = [('2nt_op',None,None,'בינוני 10-12','2nt',None),
+             ('2nt_op',None,None,'בינוני 10-12','stayman','♥'),
+             ('2nt_op',None,None,'חלש 6-9','trans-h','♥'),
+             ('2nt_op',None,None,'חלש 6-9','trans-s','♠')]
+_MAJ_SUPP = [('major',None,None,'פס 0-5',None,None),
+             ('major',None,None,'חלש 6-9','support',None),
+             ('major',None,None,'בינוני 10-12','support',None),
+             ('major',None,None,'חזק 13+','support',None)]
+_MAJ_NT   = [('major',None,None,'חלש 6-9','1nt',None),
+             ('major',None,None,'בינוני 10-12','2nt',None),
+             ('major',None,None,'חזק 13+','2nt',None)]
+_MIN_MAJ  = [('minor',None,None,'חלש 6-10','1h','♥'),
+             ('minor',None,None,'חלש 6-10','1s','♠')]
+_MIN_NT   = [('minor',None,None,'חלש 6-10','1nt',None),
+             ('minor',None,None,'בינוני 11-12','2nt',None),
+             ('minor',None,None,'חזק 13+','2nt',None)]
+_MIN_SUPP = [('minor',None,None,'חלש 6-10','supp-minor',None),
+             ('minor',None,None,'בינוני 11-12','supp-minor',None)]
+_SLAM_SUIT= [('major','♥','חזק 18-21','חזק 13+','support','♥'),
+             ('major','♠','חזק 18-21','חזק 13+','support','♠')]
+_SLAM_NT  = [('nt',None,None,'הזמנת סלאם 16-17','2nt',None),
+             ('nt',None,None,'ג׳רבר 18+','2nt',None)]
+_2CLUB    = [('2club',None,None,None,None,None),
+             ('2club',None,None,'בינוני 10-12','1h','♥'),
+             ('2club',None,None,'בינוני 10-12','1s','♠')]
+_WEAK2    = [('weak2','♥',None,'חלש 6-9',None,None),
+             ('weak2','♥',None,'בינוני 10-12','support','♥'),
+             ('weak2','♠',None,'חלש 6-9',None,None),
+             ('weak2','♠',None,'בינוני 10-12','support','♠')]
+
+_NT_SPLIT = ('split', 'תשובות ב', 'NT')
+WORKSHEET_PANEL = [
+    ('h', '1NT'),
+    ('b', _NT_SPLIT,   _NAT_NT),
+    ('b', 'סטיימן',    _STAYMAN),
+    ('b', 'טרנספר',    _TRANSFER),
+    ('h', '2NT'),
+    ('b', 'כל התשובות', _2NT_ALL),
+    ('h', 'מיגורים'),
+    ('b', 'תמיכה במיגור', _MAJ_SUPP),
+    ('b', _NT_SPLIT,      _MAJ_NT),
+    ('h', 'מינורים'),
+    ('b', 'תשובות במיגור', _MIN_MAJ),
+    ('b', _NT_SPLIT,       _MIN_NT),
+    ('b', 'תמיכה במינור',  _MIN_SUPP),
+    ('h', 'סלאם'),
+    ('b', 'סלאם בצבע',        _SLAM_SUIT),
+    ('b', ('split','סלאם ב','NT'), _SLAM_NT),
+    ('h', '2♣ חזקה'),
+    ('b', 'כל התשובות', _2CLUB),
+    ('h', 'פתיחות חלשות'),
+    ('b', 'כל התשובות', _WEAK2),
 ]
 
 # ── Player state ───────────────────────────────────────────────────────────────
@@ -505,12 +575,14 @@ body { font-family:Arial,sans-serif; font-size:14px; background:#fff; }
 .score-table th { background:#eee; }
 .pbtn { display:block; margin:8px auto 12px; padding:8px 28px; font-size:13pt;
         background:#1a4a2e; color:#f0e6c8; border:none; border-radius:8px; cursor:pointer; }
+.toolbar { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:10px auto 4px; }
+.toolbar .pbtn { display:inline-block; margin:0; padding:8px 20px; }
 .hint { text-align:center; color:#555; font-size:12px; margin:-4px auto 10px; }
 .card { cursor:pointer; padding:0 0.5px; border-radius:3px; }
 .card.sel { background:#f2c14e; box-shadow:0 0 0 1px #b8860b; }
 @media print {
   .page { height:255mm; grid-template-rows:1fr 1fr; align-items:stretch; page-break-after:always; }
-  .pbtn, .hint { display:none; }
+  .pbtn, .hint, .toolbar { display:none; }
   .card { cursor:default; }
   .card.sel { background:none; box-shadow:none; }
   .compass-circle { background:#fff !important; box-shadow:none !important; border-color:#333 !important; }
@@ -562,6 +634,126 @@ document.addEventListener('click',function(ev){
   renderHand(bi,p1);renderHand(bi,pl);
 });
 renderAll();
+"""
+
+# ── JS פלט מאוחד: LIN / BBO / סטריפים — הכול מתוך BOARDS הערוך (אחרי הזזות) ──────
+# נמל של lin_export / handviewer_page ל-JS, כדי שהזזת קלף בדף העריכה תשתקף בכל
+# הפלטים. DLR = דילר תקין (נופל ל-N אם ריק). רץ אחרי SWAP_JS (SUITS/RANKS/CLS משותפים).
+OUTPUT_JS = r"""
+const DLR = /[NESW]/i.test(DEALER) ? DEALER.toUpperCase() : 'N';
+const LIN_DEALER = {S:1, W:2, N:3, E:4};
+function linHand(hand){
+  const M=[['♠','S'],['♥','H'],['♦','D'],['♣','C']]; let out='';
+  for(const pair of M){
+    const rs=hand.filter(c=>c[0]===pair[0]).map(c=>c[1])
+                 .sort((a,b)=>RANKS.indexOf(a)-RANKS.indexOf(b));
+    out+=pair[1]+rs.join('');
+  }
+  return out;
+}
+function linExport(){
+  const n=BOARDS.length, d=LIN_DEALER[DLR]||3;
+  let head='vg|,,P,1,'+n+',Team 1,0,Team 2,0|'
+    +'rs|'+','.repeat(2*n-1)+'|'
+    +'pw|'+','.repeat(4*n-1)+'|'
+    +'mp|'+','.repeat(2*n-1)+'|'
+    +'bn|'+Array.from({length:n},(_,i)=>i+1).join(',')+'|pg||';
+  const lines=[head];
+  for(let i=1;i<=n;i++){
+    const b=BOARDS[i-1];
+    const hands=[b.S,b.W,b.N].map(linHand).join(',');
+    const prefix=(i===1)?'mn||':'';
+    lines.push(prefix+'pn|,,,|qx|o'+i+',BOARD '+i+'|rh||ah|Board '+i
+      +'|md|'+d+hands+'|sv|0|sa|0|pg||');
+  }
+  return lines.join('\n')+'\n';
+}
+function downloadText(fn,text,mime){
+  const blob=new Blob([text],{type:mime||'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=fn;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href); a.remove();},1000);
+}
+function saveLIN(){ downloadText('boards.lin', linExport(), 'text/plain'); }
+
+function hvUrl(bi){
+  const b=BOARDS[bi];
+  const parts=['N','E','S','W'].map(function(p){return p.toLowerCase()+'='+linHand(b[p]).toLowerCase();});
+  parts.push('d='+DLR.toLowerCase());
+  return HV_BASE+'?'+parts.join('&');
+}
+function openBBO(){
+  let blocks='';
+  for(let bi=0;bi<BOARDS.length;bi++){
+    const url=hvUrl(bi);
+    blocks+='<section><h2>לוח <bdi>'+(bi+1)+'</bdi>'
+      +'<span class="d">דילר <bdi>'+DLR+'</bdi></span>'
+      +'<a href="'+url+'" target="_blank" rel="noopener">פתח לבד ↗</a></h2>'
+      +'<iframe src="'+url+'" loading="lazy"></iframe></section>';
+  }
+  const doc='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">'
+    +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<title>לוחות ל-BBO HandViewer</title><style>'
+    +'body{margin:0;font-family:Arial,sans-serif;background:#123;color:#eee;padding:12px}'
+    +'h1{font-size:20px;margin:8px 4px}'
+    +'section{background:#0a3d24;border-radius:10px;margin:0 0 22px;padding:10px}'
+    +'h2{font-size:17px;margin:2px 4px 10px;display:flex;align-items:center;gap:14px}'
+    +'.d{font-size:13px;color:#8fd0a8;font-weight:normal}'
+    +'h2 a{margin-inline-start:auto;font-size:13px;color:#9cf;text-decoration:none}'
+    +'iframe{width:100%;height:78vh;border:0;border-radius:6px;background:#0a3d24}'
+    +'</style></head><body><h1>לוחות ל-BBO HandViewer — <bdi>'+BOARDS.length+'</bdi> לוחות</h1>'
+    +blocks+'</body></html>';
+  const w=window.open('','_blank');
+  if(w){w.document.write(doc); w.document.close();}
+  else alert('חוסם החלונות מנע פתיחה. אפשר חלונות קופצים לדף זה.');
+}
+
+function stripHand(bi,pl){
+  const hand=BOARDS[bi][pl]; let html='';
+  for(const s of SUITS){
+    const cs=hand.filter(c=>c[0]===s)
+                 .sort((a,b)=>RANKS.indexOf(a[1])-RANKS.indexOf(b[1]))
+                 .map(c=>c[1]).join('');
+    html+='<span class="ln"><span class="'+CLS[s]+'">'+s+'</span> '+(cs||'—')+'</span>';
+  }
+  return html;
+}
+const WIND={N:'צפון',E:'מזרח',S:'דרום',W:'מערב'};
+function openStrips(){
+  let rows='';
+  for(let bi=0;bi<BOARDS.length;bi++){
+    let cols='';
+    for(const pl of ['N','E','S','W'])
+      cols+='<div class="pos"><div class="pl"><span class="bd">לוח <bdi>'+(bi+1)+'</bdi></span>'
+            +'<span class="dline"><span class="dir">'+WIND[pl]+'</span>'
+            +(pl===DLR?'<span class="dlr">דילר</span>':'')+'</span></div>'
+            +stripHand(bi,pl)+'</div>';
+    rows+='<div class="strip">'+cols+'</div>';
+  }
+  const css='body{font-family:Arial,sans-serif;margin:0;padding:4mm;color:#111}'
+    +'.tb{margin:0 0 6mm}'
+    +'.tb button{background:#1a4a2e;color:#f0e6c8;border:none;border-radius:6px;padding:7px 20px;font-size:13pt;cursor:pointer}'
+    +'.strip{display:flex;justify-content:flex-end;gap:11mm;direction:ltr;border:1px solid #333;'
+    +'border-radius:4px;padding:8px 12px;margin-bottom:5mm;page-break-inside:avoid}'
+    +'.pos{min-width:130px}'
+    +'.pl{direction:rtl;text-align:center;border-bottom:1px solid #ccc;margin-bottom:4px;padding-bottom:3px}'
+    +'.bd{display:block;font-size:14px;font-weight:bold;color:#1a4a2e;line-height:1.25}'
+    +'.dline{display:block;line-height:1.3}'
+    +'.dir{font-size:16px;font-weight:bold;color:#1a4a2e}'
+    +'.dlr{font-size:12px;font-weight:bold;color:#fff;background:#1a4a2e;'
+    +'border-radius:3px;padding:0 7px;margin-inline-start:6px;display:inline-block}'
+    +'.ln{display:block;font-size:19px;font-weight:bold;white-space:nowrap;line-height:1.55}'
+    +'.sp,.cl{color:#111}.he,.di{color:#c11}'
+    +'@media print{.tb{display:none}}@page{size:A4 portrait;margin:6mm}';
+  const doc='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">'
+    +'<title>סטריפים</title><style>'+css+'</style></head><body>'
+    +'<div class="tb"><button onclick="window.print()">🖨 הדפס סטריפים</button></div>'
+    +rows+'</body></html>';
+  const w=window.open('','_blank');
+  if(w){w.document.write(doc); w.document.close();}
+  else alert('חוסם החלונות מנע פתיחה. אפשר חלונות קופצים לדף זה.');
+}
 """
 
 # ── ייצוא LIN (BBO / ברידג' קומפוזר) ──────────────────────────────────────────
@@ -662,12 +854,20 @@ def open_print(boards, dealer):
 <html><head><meta charset="UTF-8"><title>לוחות</title>
 <style>{CSS}</style></head>
 <body>
-<button class="pbtn" onclick="window.print()">🖨 הדפס</button>
-<div class="hint">לחצו קלף ואז קלף אחר באותו לוח כדי להחליף ביניהם. אחר כך הדפיסו.</div>
+<div class="toolbar">
+  <button class="pbtn" onclick="window.print()">🖨 הדפס</button>
+  <button class="pbtn" onclick="openStrips()">📄 סטריפים</button>
+  <button class="pbtn" onclick="saveLIN()">💾 LIN</button>
+  <button class="pbtn" onclick="openBBO()">🌐 BBO</button>
+</div>
+<div class="hint">לחצו קלף ואז קלף אחר באותו לוח כדי להחליף ביניהם. כל הפלטים משתמשים בלוחות שאחרי העריכה.</div>
 {pages}
 <script>
 const BOARDS = {boards_json};
+const DEALER = {json.dumps(dealer)};
+const HV_BASE = {json.dumps(HV_BASE)};
 {SWAP_JS}
+{OUTPUT_JS}
 </script>
 </body></html>'''
 
@@ -708,6 +908,19 @@ FONT_B   = ('Segoe UI', 13, 'bold')
 FONT_SM  = ('Segoe UI', 11)
 FONT_LG  = ('Segoe UI', 15, 'bold')
 
+# ── Modern Lessons-Panel palette (deep green frame + lavender cards) ────────────
+LP_BG      = BG            # רקע ירוק עמוק (כמו האפליקציה) — #1a4a2e
+LP_HDR_BG  = BAR_BG        # פס כותרת קבוצה — ירוק כהה #163d25
+LP_HDR_FG  = GOLD          # טקסט כותרת — זהב
+LP_CARD    = '#e0d5f2'     # פני כפתור — לבנדר (גוון A)
+LP_CARD_BD = '#bca9dd'     # מסגרת כרטיס עדינה
+LP_TINT    = '#ffffff'     # hover — הבהרה ללבן
+LP_INK     = '#1f3a2b'     # טקסט כפתור — ירוק כהה
+LP_SEL     = GOLD          # כפתור נבחר — זהב (כמו המתגים באפליקציה)
+LP_SEL_FG  = BG            # טקסט כפתור נבחר — ירוק כהה
+LP_FONT    = 'Segoe UI Semibold'
+LP_BTN_H   = 34            # גובה כפתור אחיד (טור אחד) — מאושר
+
 
 def styled_btn(parent, text, cmd, active=False, resp=False, w=10):
     if active and resp:
@@ -735,8 +948,8 @@ class LessonsPanel(tk.Toplevel):
     def __init__(self, app):
         super().__init__(app)
         self.app = app
-        self.title('שיעורים')
-        self.configure(bg=BG)
+        self.title('דפי עבודה')
+        self.configure(bg=LP_BG)
         self.resizable(False, True)
         self._active_btn = None
         self._build()
@@ -744,25 +957,29 @@ class LessonsPanel(tk.Toplevel):
         app.update_idletasks()
         screen_w = app.winfo_screenwidth()
         screen_h = app.winfo_screenheight()
-        win_w, win_h = 320, min(600, screen_h - 80)
+        win_w, win_h = 340, min(640, screen_h - 80)
         x = screen_w - win_w - 20
         y = 40
         self.geometry(f'{win_w}x{win_h}+{x}+{y}')
 
     def _build(self):
-        tk.Label(self, text='📚  שיעורים מוכנים', bg=BG, fg=CREAM,
-                 font=FONT_LG).pack(pady=(10, 4))
+        # פס הדגשה עליון: זהב דק
+        tk.Frame(self, bg=GOLD, height=3).pack(fill='x')
 
-        outer = tk.Frame(self, bg=BG)
-        outer.pack(fill='both', expand=True, padx=6, pady=(0, 8))
+        tk.Label(self, text='דפי עבודה  📄', bg=LP_BG, fg=GOLD,
+                 font=(LP_FONT, 16, 'bold'), anchor='e').pack(
+                 fill='x', padx=14, pady=(12, 8))
 
-        canvas = tk.Canvas(outer, bg=BG, highlightthickness=0)
+        outer = tk.Frame(self, bg=LP_BG)
+        outer.pack(fill='both', expand=True, padx=8, pady=(0, 8))
+
+        canvas = tk.Canvas(outer, bg=LP_BG, highlightthickness=0)
         sb = tk.Scrollbar(outer, orient='vertical', command=canvas.yview)
         canvas.configure(yscrollcommand=sb.set)
         sb.pack(side='right', fill='y')
         canvas.pack(side='left', fill='both', expand=True)
 
-        inner = tk.Frame(canvas, bg=BG)
+        inner = tk.Frame(canvas, bg=LP_BG)
         win_id = canvas.create_window((0, 0), window=inner, anchor='nw')
 
         inner.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
@@ -770,34 +987,63 @@ class LessonsPanel(tk.Toplevel):
         canvas.bind_all('<MouseWheel>',
                         lambda e: canvas.yview_scroll(int(-1*(e.delta/120)), 'units'))
 
-        for group_title, lessons in LESSON_GROUPS:
-            hdr = tk.Frame(inner, bg=BAR_BG)
-            hdr.pack(fill='x', pady=(8, 2))
-            tk.Label(hdr, text=group_title, bg=BAR_BG, fg=GOLD,
-                     font=FONT_B, anchor='w', padx=10, pady=4).pack(fill='x')
+        # טור אחד לפי WORKSHEET_PANEL: כותרות ('h') + כפתורי דפי-עבודה ('b')
+        for item in WORKSHEET_PANEL:
+            if item[0] == 'h':
+                hdr = tk.Frame(inner, bg=LP_HDR_BG)
+                hdr.pack(fill='x', pady=(8, 3))
+                tk.Frame(hdr, bg=GOLD, width=4).pack(side='right', fill='y')
+                tk.Label(hdr, text=item[1], bg=LP_HDR_BG, fg=LP_HDR_FG,
+                         font=(LP_FONT, 12, 'bold'), anchor='e',
+                         padx=12, pady=5).pack(fill='x')
+            else:
+                self._make_button(inner, item[1], item[2])
 
-            gf = tk.Frame(inner, bg=BG)
-            gf.pack(fill='x', padx=2, pady=1)
-            gf.columnconfigure(0, weight=1)
-            gf.columnconfigure(1, weight=1)
+    def _make_button(self, parent, labelspec, scenarios):
+        """כפתור דף-עבודה בגובה אחיד. labelspec = מחרוזת או ('split', עברית, לטינית)
+        (הלטינית נעוצה שמאל — כי Tk BiDi לא שם NT משמאל). לחיצה → _make_worksheet."""
+        card = tk.Frame(parent, bg=LP_CARD, height=LP_BTN_H,
+                        highlightthickness=1, highlightbackground=LP_CARD_BD,
+                        cursor='hand2')
+        card.pack_propagate(False)
+        card.pack(fill='x', pady=3)
 
-            for i, lesson in enumerate(lessons):
-                lbl = lesson[0]
-                row, col = divmod(i, 2)
-                btn = tk.Button(gf, text=lbl, font=('Segoe UI', 15),
-                                bg=BAR_BG, fg='#ffffff', relief='flat',
-                                pady=5, padx=4, cursor='hand2', anchor='center',
-                                activebackground=PAN_BG, activeforeground=CREAM)
-                btn.config(command=lambda ls=lesson, b=btn: self._apply(ls, b))
-                btn.grid(row=row, column=col, padx=2, pady=2, sticky='ew')
+        bgs = [card]; fgs = []
+        if isinstance(labelspec, tuple) and labelspec[0] == 'split':
+            box = tk.Frame(card, bg=LP_CARD); box.pack(expand=True)
+            l_lat = tk.Label(box, text=labelspec[2], bg=LP_CARD, fg=LP_INK, font=(LP_FONT, 13))
+            l_lat.pack(side='left')
+            l_heb = tk.Label(box, text=labelspec[1], bg=LP_CARD, fg=LP_INK, font=(LP_FONT, 13))
+            l_heb.pack(side='left', padx=(2, 0))
+            bgs += [box, l_lat, l_heb]; fgs += [l_lat, l_heb]
+        else:
+            lbl = tk.Label(card, text=labelspec, bg=LP_CARD, fg=LP_INK, font=(LP_FONT, 13))
+            lbl.pack(expand=True)
+            bgs.append(lbl); fgs.append(lbl)
 
-    def _apply(self, lesson, btn):
-        _, n_open, n_suit, n_str, s_str, s_type, s_suit = lesson
-        if self._active_btn:
-            self._active_btn.config(bg=BAR_BG, fg='#ffffff', font=('Segoe UI', 15))
-        btn.config(bg=GOLD, fg=BG, font=('Segoe UI', 16, 'bold'))
-        self._active_btn = btn
-        self.app._apply_lesson(n_open, n_suit, n_str, s_str, s_type, s_suit)
+        parts = {'card': card, 'bgs': bgs, 'fgs': fgs}
+        for w in bgs:
+            w.bind('<Button-1>', lambda e, p=parts, sc=scenarios: self._apply(p, sc))
+            w.bind('<Enter>',    lambda e, p=parts: self._hover(p, True))
+            w.bind('<Leave>',    lambda e, p=parts: self._hover(p, False))
+
+    def _set_colors(self, parts, bg, fg, border):
+        for w in parts['bgs']: w.config(bg=bg)
+        for w in parts['fgs']: w.config(fg=fg)
+        parts['card'].config(highlightbackground=border)
+
+    def _hover(self, parts, on):
+        if on:
+            self._set_colors(parts, LP_TINT, LP_INK, GOLD)
+        else:
+            self._set_colors(parts, LP_CARD, LP_INK, LP_CARD_BD)
+
+    def _apply(self, parts, scenarios):
+        # פלאש זהב קצר למשוב, ואז חלוקת דף העבודה (מוסיף למאגר)
+        self._set_colors(parts, LP_SEL, LP_SEL_FG, LP_SEL)
+        self.update_idletasks()
+        self.after(140, lambda: self._set_colors(parts, LP_CARD, LP_INK, LP_CARD_BD))
+        self.app._make_worksheet(scenarios)
 
 
 # ── App ────────────────────────────────────────────────────────────────────────
@@ -1065,7 +1311,9 @@ class App(tk.Tk):
             return
         self._lessons_win = LessonsPanel(self)
 
-    def _apply_lesson(self, n_open, n_suit, n_str, s_str, s_type, s_suit):
+    def _setup_scenario(self, n_open, n_suit, n_str, s_str, s_type, s_suit):
+        """מגדיר pST לתרחיש בודד (פותח N + משיב S) — ללא רענון UI/דילר.
+        לב הלוגיקה המשותפת ל-_apply_lesson ול-_make_worksheet."""
         for p in 'NESW':
             pState[p] = init_state()
 
@@ -1095,11 +1343,38 @@ class App(tk.Tk):
         else:
             recompute_responder('S')
 
+    def _apply_lesson(self, n_open, n_suit, n_str, s_str, s_type, s_suit):
+        self._setup_scenario(n_open, n_suit, n_str, s_str, s_type, s_suit)
         # הערה: אין יותר הגבלת נקודות ל-E/W. ההגבלה (E/W≤8) הייתה שריד מעידן
         # ההכרזה האוטומטית (למנוע אוברקול/דאבל). מאחר שההכרזה האוטומטית הוסרה,
         # ההגבלה רק שברה חלוקה כשל-N/S מעט נקודות. היריבים מקבלים את השאר.
         self._set_dealer('N')
         self._refresh_all()
+
+    def _make_worksheet(self, scenarios):
+        """דף עבודה: מחלק N לוחות (הבורר) שמתפרשים על רשימת התרחישים בכוחות
+        מעורבים — תרחיש שונה לכל לוח (מסתובב). מוסיף למאגר הקיים. פותח=N."""
+        n_boards = self.var_boards.get()
+        boards = []
+        for i in range(n_boards):
+            n_open, n_suit, n_str, s_str, s_type, s_suit = scenarios[i % len(scenarios)]
+            self._setup_scenario(n_open, n_suit, n_str, s_str, s_type, s_suit)
+            h = None
+            for _ in range(3):                 # נסה שוב על תרחיש קשה לפני ויתור
+                h = deal_one_board()
+                if h is not None:
+                    break
+            if h is None:
+                messagebox.showerror('שגיאה', 'לא נמצאה חלוקה לאחד התרחישים. נסה שוב.')
+                return
+            boards.append(h)
+
+        self._board_buffer.extend(boards)
+        self._buffer_dealer = 'N'
+        # השאר את התצוגה על התרחיש האחרון (עקבי עם לחיצת שיעור)
+        self._set_dealer('N')
+        self._refresh_all()
+        self._update_buffer_ui()
 
     def _reset(self):
         for p in 'NESW': pState[p] = init_state()
