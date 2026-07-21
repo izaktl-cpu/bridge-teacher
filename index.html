@@ -573,11 +573,235 @@
     openPrint(boards,dealer);
   }
 
+  const HV_BASE='https://www.bridgebase.com/tools/handviewer.html';
+  const WEB_CSS=`
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:Arial,sans-serif; font-size:14px; background:#fff; }
+.page { width:180mm; margin:5mm auto; display:grid;
+        grid-template-columns:1fr 1fr; gap:5mm; align-items:start; }
+.board { border:1.5px solid #333; border-radius:3px; padding:6px; background:#fff; }
+.board-header { text-align:center; font-size:12px; font-weight:bold;
+                border-bottom:1px solid #bbb; padding-bottom:3px; margin-bottom:4px; }
+.hand-grid { display:grid; direction:ltr;
+             grid-template-areas:". north ." "west center east" ". south .";
+             grid-template-columns:1fr 62px 1fr; grid-template-rows:auto auto auto;
+             align-items:center; margin-top:-7px; }
+.cell-n { grid-area:north; text-align:center; padding:3px 0; transform:translateY(8px); }
+.cell-s { grid-area:south; text-align:center; padding:3px 0; transform:translateY(-8px); }
+.cell-w { grid-area:west;  text-align:left; padding:4px 6px 4px 2px; transform:translateX(23px); }
+.cell-e { grid-area:east;  text-align:left; padding:4px 2px 4px 6px; }
+.cell-c { grid-area:center; display:flex; align-items:center; justify-content:center; padding:4px 0; }
+.cell-n .hl, .cell-s .hl { display:inline-block; text-align:left; }
+.sr  { display:block; line-height:1.5; white-space:nowrap; font-size:15px; font-weight:bold; }
+.sp  { color:#111; font-weight:bold; } .he { color:#cc1111; font-weight:bold; }
+.di  { color:#cc1111; font-weight:bold; } .cl { color:#111; font-weight:bold; }
+.compass-wrap { width:58px; height:58px; position:relative; display:flex;
+                align-items:center; justify-content:center; }
+.compass-circle { width:54px; height:54px; border:2px solid #1a4a2e; border-radius:6px;
+                  position:absolute;
+                  background:radial-gradient(ellipse at 40% 35%,#4aaa5a 0%,#2d8a3e 55%,#1a5a28 100%);
+                  box-shadow:inset 0 2px 8px rgba(255,255,255,0.15),
+                             inset 0 -3px 8px rgba(0,0,0,0.35), 2px 3px 7px rgba(0,0,0,0.4); }
+.cn,.cs,.cw,.ce { position:absolute; font-size:12px; font-weight:bold; line-height:1;
+                  z-index:1; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6); }
+.cn { top:5px;    left:50%; transform:translateX(-50%); }
+.cs { bottom:5px; left:50%; transform:translateX(-50%); }
+.cw { left:5px;   top:50%;  transform:translateY(-50%); }
+.ce { right:5px;  top:50%;  transform:translateY(-50%); }
+.hcp-badge { display:block; font-size:10px; font-weight:bold; color:#1a4a2e;
+             background:#e8f0d8; border:1px solid #9ab87a; border-radius:3px;
+             text-align:center; margin-top:2px; padding:0 3px; width:fit-content; }
+.score-table { border-collapse:collapse; width:100%; table-layout:fixed; margin-top:5px; }
+.score-table th, .score-table td { border:1px solid #555; width:25%; height:18px; line-height:18px; text-align:center; vertical-align:middle; padding:0; font-size:11px; font-weight:bold; box-sizing:border-box; }
+.score-table th { background:#eee; }
+.pbtn { display:block; margin:8px auto 12px; padding:8px 28px; font-size:13pt;
+        background:#1a4a2e; color:#f0e6c8; border:none; border-radius:8px; cursor:pointer; }
+.toolbar { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:10px auto 4px; }
+.toolbar .pbtn { display:inline-block; margin:0; padding:8px 20px; }
+.hint { text-align:center; color:#555; font-size:12px; margin:-4px auto 10px; }
+.card { cursor:pointer; padding:0 0.5px; border-radius:3px; }
+.card.sel { background:#f2c14e; box-shadow:0 0 0 1px #b8860b; }
+@media print {
+  .page { height:255mm; grid-template-rows:1fr 1fr; align-items:stretch; page-break-after:always; }
+  .pbtn, .hint, .toolbar { display:none; }
+  .card { cursor:default; }
+  .card.sel { background:none; box-shadow:none; }
+  .compass-circle { background:#fff !important; box-shadow:none !important; border-color:#333 !important; }
+  .cn,.cs,.cw,.ce { color:#000 !important; text-shadow:none !important; }
+  @page { size:A4 portrait; margin:5mm; }
+}`;
+  const WEB_SWAP_JS=`
+const SUITS=['♠','♥','♦','♣'];
+const RANKS=['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+const CLS={'♠':'sp','♥':'he','♦':'di','♣':'cl'};
+const HCPV={A:4,K:3,Q:2,J:1};
+let sel=null;
+function renderHand(bi,pl){
+  const hand=BOARDS[bi][pl];
+  let html='',pts=0;
+  for(const s of SUITS){
+    const cs=hand.filter(c=>c[0]===s).sort((a,b)=>RANKS.indexOf(a[1])-RANKS.indexOf(b[1]));
+    const inner=cs.length?cs.map(function(c){
+      return '<span class="card" data-bi="'+bi+'" data-pl="'+pl+'" data-s="'+s+'" data-r="'+c[1]+'">'+c[1]+'</span>';
+    }).join(''):'—';
+    html+='<span class="sr"><span class="'+CLS[s]+'">'+s+'</span> '+inner+'</span>';
+  }
+  for(const c of hand){pts+=HCPV[c[1]]||0;}
+  html+='<span class="hcp-badge">'+pts+'</span>';
+  document.getElementById('h-'+bi+'-'+pl).innerHTML=html;
+}
+function renderAll(){for(let bi=0;bi<BOARDS.length;bi++){for(const pl of ['N','E','S','W'])renderHand(bi,pl);}}
+function clearSel(){const e=document.querySelector('.card.sel');if(e)e.classList.remove('sel');sel=null;}
+document.addEventListener('click',function(ev){
+  const el=ev.target.closest('.card');
+  if(!el)return;
+  const bi=+el.dataset.bi,pl=el.dataset.pl,s=el.dataset.s,r=el.dataset.r;
+  if(!sel){sel={bi:bi,pl:pl,s:s,r:r};el.classList.add('sel');return;}
+  if(sel.bi!==bi){clearSel();return;}
+  if(sel.pl===pl){
+    const same=(sel.s===s&&sel.r===r);
+    clearSel();
+    if(!same){sel={bi:bi,pl:pl,s:s,r:r};el.classList.add('sel');}
+    return;
+  }
+  const A=BOARDS[bi][sel.pl],B=BOARDS[bi][pl];
+  const ai=A.findIndex(function(c){return c[0]===sel.s&&c[1]===sel.r;});
+  const bj=B.findIndex(function(c){return c[0]===s&&c[1]===r;});
+  const t=A[ai];A[ai]=B[bj];B[bj]=t;
+  const p1=sel.pl;sel=null;
+  renderHand(bi,p1);renderHand(bi,pl);
+});
+renderAll();
+`;
+  const WEB_OUTPUT_JS=`
+const DLR = /[NESW]/i.test(DEALER) ? DEALER.toUpperCase() : 'N';
+const LIN_DEALER = {S:1, W:2, N:3, E:4};
+function linHand(hand){
+  const M=[['♠','S'],['♥','H'],['♦','D'],['♣','C']]; let out='';
+  for(const pair of M){
+    const rs=hand.filter(c=>c[0]===pair[0]).map(c=>c[1])
+                 .sort((a,b)=>RANKS.indexOf(a)-RANKS.indexOf(b));
+    out+=pair[1]+rs.join('');
+  }
+  return out;
+}
+function linExport(){
+  const n=BOARDS.length, d=LIN_DEALER[DLR]||3;
+  let head='vg|,,P,1,'+n+',Team 1,0,Team 2,0|'
+    +'rs|'+','.repeat(2*n-1)+'|'
+    +'pw|'+','.repeat(4*n-1)+'|'
+    +'mp|'+','.repeat(2*n-1)+'|'
+    +'bn|'+Array.from({length:n},(_,i)=>i+1).join(',')+'|pg||';
+  const lines=[head];
+  for(let i=1;i<=n;i++){
+    const b=BOARDS[i-1];
+    const hands=[b.S,b.W,b.N].map(linHand).join(',');
+    const prefix=(i===1)?'mn||':'';
+    lines.push(prefix+'pn|,,,|qx|o'+i+',BOARD '+i+'|rh||ah|Board '+i
+      +'|md|'+d+hands+'|sv|0|sa|0|pg||');
+  }
+  return lines.join('\\n')+'\\n';
+}
+function downloadText(fn,text,mime){
+  const blob=new Blob([text],{type:mime||'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=fn;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href); a.remove();},1000);
+}
+function saveLIN(){ downloadText('boards.lin', linExport(), 'text/plain'); }
+function hvUrl(bi){
+  const b=BOARDS[bi];
+  const parts=['N','E','S','W'].map(function(p){return p.toLowerCase()+'='+linHand(b[p]).toLowerCase();});
+  parts.push('d='+DLR.toLowerCase());
+  return HV_BASE+'?'+parts.join('&');
+}
+function openBBO(){
+  let blocks='';
+  for(let bi=0;bi<BOARDS.length;bi++){
+    const url=hvUrl(bi);
+    blocks+='<section><h2>לוח <bdi>'+(bi+1)+'</bdi>'
+      +'<span class="d">דילר <bdi>'+DLR+'</bdi></span>'
+      +'<a href="'+url+'" target="_blank" rel="noopener">פתח לבד ↗</a></h2>'
+      +'<iframe src="'+url+'" loading="lazy"></iframe></section>';
+  }
+  const doc='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">'
+    +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<title>לוחות ל-BBO HandViewer</title><style>'
+    +'body{margin:0;font-family:Arial,sans-serif;background:#123;color:#eee;padding:12px}'
+    +'h1{font-size:20px;margin:8px 4px}'
+    +'section{background:#0a3d24;border-radius:10px;margin:0 0 22px;padding:10px}'
+    +'h2{font-size:17px;margin:2px 4px 10px;display:flex;align-items:center;gap:14px}'
+    +'.d{font-size:13px;color:#8fd0a8;font-weight:normal}'
+    +'h2 a{margin-inline-start:auto;font-size:13px;color:#9cf;text-decoration:none}'
+    +'iframe{width:100%;height:78vh;border:0;border-radius:6px;background:#0a3d24}'
+    +'</style></head><body><h1>לוחות ל-BBO HandViewer — <bdi>'+BOARDS.length+'</bdi> לוחות</h1>'
+    +blocks+'</body></html>';
+  const w=window.open('','_blank');
+  if(w){w.document.write(doc); w.document.close();}
+  else alert('חוסם החלונות מנע פתיחה. אפשר חלונות קופצים לדף זה.');
+}
+function stripHand(bi,pl){
+  const hand=BOARDS[bi][pl]; let html='';
+  for(const s of SUITS){
+    const cs=hand.filter(c=>c[0]===s)
+                 .sort((a,b)=>RANKS.indexOf(a[1])-RANKS.indexOf(b[1]))
+                 .map(c=>c[1]).join('');
+    html+='<span class="ln"><span class="'+CLS[s]+'">'+s+'</span> '+(cs||'—')+'</span>';
+  }
+  return html;
+}
+const WIND={N:'צפון',E:'מזרח',S:'דרום',W:'מערב'};
+function openStrips(){
+  let rows='';
+  for(let bi=0;bi<BOARDS.length;bi++){
+    let cols='';
+    for(const pl of ['N','E','S','W'])
+      cols+='<div class="pos"><div class="pl"><span class="bd">לוח <bdi>'+(bi+1)+'</bdi></span>'
+            +'<span class="dline"><span class="dir">'+WIND[pl]+'</span>'
+            +(pl===DLR?'<span class="dlr">דילר</span>':'')+'</span></div>'
+            +stripHand(bi,pl)+'</div>';
+    rows+='<div class="strip">'+cols+'</div>';
+  }
+  const css='body{font-family:Arial,sans-serif;margin:0;padding:4mm;color:#111}'
+    +'.tb{margin:0 0 6mm}'
+    +'.tb button{background:#1a4a2e;color:#f0e6c8;border:none;border-radius:6px;padding:7px 20px;font-size:13pt;cursor:pointer}'
+    +'.strip{display:flex;justify-content:flex-end;gap:11mm;direction:ltr;border:1px solid #333;'
+    +'border-radius:4px;padding:8px 12px;margin-bottom:5mm;page-break-inside:avoid}'
+    +'.pos{min-width:130px}'
+    +'.pl{direction:rtl;text-align:center;border-bottom:1px solid #ccc;margin-bottom:4px;padding-bottom:3px}'
+    +'.bd{display:block;font-size:14px;font-weight:bold;color:#1a4a2e;line-height:1.25}'
+    +'.dline{display:block;line-height:1.3}'
+    +'.dir{font-size:16px;font-weight:bold;color:#1a4a2e}'
+    +'.dlr{font-size:12px;font-weight:bold;color:#fff;background:#1a4a2e;'
+    +'border-radius:3px;padding:0 7px;margin-inline-start:6px;display:inline-block}'
+    +'.ln{display:block;font-size:19px;font-weight:bold;white-space:nowrap;line-height:1.55}'
+    +'.sp,.cl{color:#111}.he,.di{color:#c11}'
+    +'@media print{.tb{display:none}}@page{size:A4 portrait;margin:6mm}';
+  const doc='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">'
+    +'<title>סטריפים</title><style>'+css+'</style></head><body>'
+    +'<div class="tb"><button onclick="window.print()">🖨 הדפס סטריפים</button></div>'
+    +rows+'</body></html>';
+  const w=window.open('','_blank');
+  if(w){w.document.write(doc); w.document.close();}
+  else alert('חוסם החלונות מנע פתיחה. אפשר חלונות קופצים לדף זה.');
+}
+`;
+  function webBoardCell(num,bi,dealer){
+    const eff=(dealer&&dealer!=='—')?dealer:['N','E','S','W'][(num-1)%4];
+    const rows='<tr><td></td><td></td><td></td><td></td></tr>'.repeat(5);
+    return `<div class="board"><div class="board-header">Board ${num} &nbsp;|&nbsp; Dealer: ${eff}</div><div class="hand-grid"><div class="cell-n"><div class="hl" id="h-${bi}-N"></div></div><div class="cell-w"><div id="h-${bi}-W"></div></div><div class="cell-c"><div class="compass-wrap"><div class="compass-circle"></div><span class="cn">N</span><span class="cw">W</span><span class="ce">E</span><span class="cs">S</span></div></div><div class="cell-e"><div id="h-${bi}-E"></div></div><div class="cell-s"><div class="hl" id="h-${bi}-S"></div></div></div><table class="score-table"><thead><tr><th>N</th><th>E</th><th>S</th><th>W</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
   function openPrint(boards,dealer){
-    const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:14px;background:#fff}.page{width:180mm;height:255mm;margin:5mm auto;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:5mm;page-break-after:always}.board{border:1.5px solid #333;border-radius:3px;padding:6px;background:#fff}.board-header{text-align:center;font-size:12px;font-weight:bold;border-bottom:1px solid #bbb;padding-bottom:3px;margin-bottom:4px}.hand-grid{display:grid;direction:ltr;grid-template-areas:". north ." "west center east" ". south .";grid-template-columns:1fr 62px 1fr;grid-template-rows:auto auto auto;align-items:center;margin-top:-7px}.cell-n{grid-area:north;text-align:center;padding:3px 0;transform:translateY(8px)}.cell-s{grid-area:south;text-align:center;padding:3px 0;transform:translateY(-8px)}.cell-w{grid-area:west;text-align:left;padding:4px 6px 4px 2px;transform:translateX(23px)}.cell-e{grid-area:east;text-align:left;padding:4px 2px 4px 6px}.cell-c{grid-area:center;display:flex;align-items:center;justify-content:center;padding:4px 0}.cell-n .hl,.cell-s .hl{display:inline-block;text-align:left}.sr{display:block;line-height:1.5;white-space:nowrap;font-size:15px;font-weight:bold}.sp{color:#111;font-weight:bold}.he{color:#cc1111;font-weight:bold}.di{color:#cc1111;font-weight:bold}.cl{color:#111;font-weight:bold}.compass-wrap{width:58px;height:58px;position:relative;display:flex;align-items:center;justify-content:center}.compass-circle{width:54px;height:54px;border:2px solid #1a4a2e;border-radius:6px;position:absolute;background:radial-gradient(ellipse at 40% 35%,#4aaa5a 0%,#2d8a3e 55%,#1a5a28 100%);box-shadow:inset 0 2px 8px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.35),2px 3px 7px rgba(0,0,0,0.4)}.cn,.cs,.cw,.ce{position:absolute;font-size:12px;font-weight:bold;line-height:1;z-index:1;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6)}.cn{top:5px;left:50%;transform:translateX(-50%)}.cs{bottom:5px;left:50%;transform:translateX(-50%)}.cw{left:5px;top:50%;transform:translateY(-50%)}.ce{right:5px;top:50%;transform:translateY(-50%)}.score-table{border-collapse:collapse;width:100%;table-layout:fixed;margin-top:5px}.score-table th,.score-table td{border:1px solid #555;width:25%;height:18px;line-height:18px;text-align:center;vertical-align:middle;padding:0;font-size:11px;font-weight:bold;box-sizing:border-box}.score-table th{background:#eee}.pbtn{display:block;margin:8px auto 12px;padding:8px 28px;font-size:13pt;background:#1a4a2e;color:#f0e6c8;border:none;border-radius:8px;cursor:pointer}@media print{.pbtn{display:none}.compass-circle{background:#fff!important;box-shadow:none!important;border-color:#333!important}.cn,.cs,.cw,.ce{color:#000!important;text-shadow:none!important}@page{size:A4 portrait;margin:5mm}}`;
-    let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>לוחות</title><style>${css}</style></head><body><button class="pbtn" onclick="window.print()">🖨 הדפס</button>`;
-    for(let i=0;i<boards.length;i+=4){html+='<div class="page">';for(let j=0;j<4&&i+j<boards.length;j++)html+=boardHTML(boards[i+j],i+j+1,dealer);html+='</div>';}
-    html+='</body></html>';
+    let pages='';
+    for(let i=0;i<boards.length;i+=4){pages+='<div class="page">';for(let j=0;j<4&&i+j<boards.length;j++)pages+=webBoardCell(i+j+1,i+j,dealer);pages+='</div>';}
+    const boardsData=boards.map(function(b){const o={};for(const p of ['N','E','S','W'])o[p]=b[p].map(function(c){return [c.s,c.r];});return o;});
+    const boardsJson=JSON.stringify(boardsData);
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>לוחות</title><style>${WEB_CSS}</style></head><body>`
+      +`<div class="toolbar"><button class="pbtn" onclick="window.print()">🖨 הדפס</button><button class="pbtn" onclick="openStrips()">📄 סטריפים</button><button class="pbtn" onclick="saveLIN()">💾 LIN</button><button class="pbtn" onclick="openBBO()">🌐 BBO</button></div>`
+      +`<div class="hint">לחצו קלף ואז קלף אחר באותו לוח כדי להחליף ביניהם. כל הפלטים משתמשים בלוחות שאחרי העריכה.</div>`
+      +pages
+      +`<scr`+`ipt>const BOARDS=${boardsJson};const DEALER=${JSON.stringify(dealer||'N')};const HV_BASE=${JSON.stringify(HV_BASE)};${WEB_SWAP_JS}${WEB_OUTPUT_JS}</scr`+`ipt></body></html>`;
     const win=window.open('','_blank');
     if(win){win.document.write(html);win.document.close();}
     else{let fr=document.getElementById('_pfr');if(!fr){fr=document.createElement('iframe');fr.id='_pfr';fr.style.display='none';document.body.appendChild(fr);}fr.srcdoc=html;}
@@ -589,196 +813,217 @@
 </html>
 
 <script>
-  (function(){
-      var LESSON_GROUPS_WEB = [
-            ["1NT", [
-                    ["פס","nt",null,null,"חלש 0-7",null,null],
-                    ["סטיימן גיים","nt",null,null,"חזק 10+","stayman","♥"],
-                    ["סטיימן הזמנה","nt",null,null,"בינוני 8-9","stayman","♥"],
-                    ["טרנספר ♥","nt",null,null,"חלש 0-7","trans-h","♥"],
-                    ["טרנספר ♠","nt",null,null,"חלש 0-7","trans-s","♠"],
-                    ["3NT","nt",null,null,"חזק 10+","2nt",null]
-                  ]],
-            ["מיגורים", [
-                    ["1♥→2♥","major","♥",null,"חלש 6-9","support","♥"],
-                    ["1♥→3♥","major","♥",null,"בינוני 10-12","support","♥"],
-                    ["1♥→4♥","major","♥",null,"חזק 13+","support","♥"],
-                    ["1♥→1NT","major","♥",null,"חלש 6-9","1nt",null],
-                    ["1♥→2NT","major","♥",null,"בינוני 10-12","2nt",null],
-                    ["1♥→3NT","major","♥",null,"חזק 13+","2nt",null],
-                    ["1♠→2♠","major","♠",null,"חלש 6-9","support","♠"],
-                    ["1♠→3♠","major","♠",null,"בינוני 10-12","support","♠"],
-                    ["1♠→4♠","major","♠",null,"חזק 13+","support","♠"],
-                    ["1♠→1NT","major","♠",null,"חלש 6-9","1nt",null],
-                    ["1♠→2NT","major","♠",null,"בינוני 10-12","2nt",null],
-                    ["1♠→3NT","major","♠",null,"חזק 13+","2nt",null]
-                  ]],
-            ["מינורים", [
-                    ["1♣→1♥","minor","♣",null,"חלש 6-10","1h","♥"],
-                    ["1♣→1♠","minor","♣",null,"חלש 6-10","1s","♠"],
-                    ["1♣→1NT","minor","♣",null,"חלש 6-10","1nt",null],
-                    ["1♣→2NT","minor","♣",null,"בינוני 11-12","2nt",null],
-                    ["1♣→3NT","minor","♣",null,"חזק 13+","2nt",null],
-                    ["1♦→1♥","minor","♦",null,"חלש 6-10","1h","♥"],
-                    ["1♦→1♠","minor","♦",null,"חלש 6-10","1s","♠"],
-                    ["1♦→1NT","minor","♦",null,"חלש 6-10","1nt",null],
-                    ["1♦→2NT","minor","♦",null,"בינוני 11-12","2nt",null],
-                    ["1♦→3NT","minor","♦",null,"חזק 13+","2nt",null]
-                  ]],
-            ["סלאם", [
-                    ["1NT→4♣ ג׳רבר","nt",null,null,"ג׳רבר 18+","2nt",null],
-                    ["1NT→4NT","nt",null,null,"הזמנת סלאם 16-17","2nt",null],
-                    ["1♥→4♥ RKCB","major","♥","חזק 18-21","חזק 13+","support","♥"],
-                    ["1♠→4♠ RKCB","major","♠","חזק 18-21","חזק 13+","support","♠"]
-                  ]],
-            ["פתיחות 2 חלשות", [
-                    ["2♥ → פס","weak2","♥",null,"חלש 6-9",null,null],
-                    ["2♥ → 4♥","weak2","♥",null,"בינוני 10-12","support","♥"],
-                    ["2♠ → פס","weak2","♠",null,"חלש 6-9",null,null],
-                    ["2♠ → 4♠","weak2","♠",null,"בינוני 10-12","support","♠"]
-                  ]],
-            ["2♣ חזקה", [
-                    ["2♣ → 2♦ שלילי","2club",null,null,null,null,null],
-                    ["2♣ → 2♥ חיובי","2club",null,null,"בינוני 10-12","1h","♥"],
-                    ["2♣ → 2♠ חיובי","2club",null,null,"בינוני 10-12","1s","♠"]
-                  ]],
-            ["2NT (20-22)", [
-                    ["2NT → 3NT","2nt_op",null,null,"בינוני 10-12","2nt",null],
-                    ["2NT → סטיימן","2nt_op",null,null,"בינוני 10-12","stayman","♥"],
-                    ["2NT → טרנספר ♥","2nt_op",null,null,"חלש 6-9","trans-h","♥"],
-                    ["2NT → טרנספר ♠","2nt_op",null,null,"חלש 6-9","trans-s","♠"]
-                  ]]
-          ];
+(function(){
+  // ===== פנל דפי-עבודה + מנוע מלא (פורט נאמן מ-bridge_teacher.py). IIFE סגור. =====
+  const SUITS=['♠','♥','♦','♣'];
+  const RANKS=['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+  const HCP_VAL={A:4,K:3,Q:2,J:1};
+  const PARTNER={N:'S',S:'N',E:'W',W:'E'};
+  const NAMESHE={N:'צפון',E:'מזרח',S:'דרום',W:'מערב'};
+  const WS_MAX_TRIES=200000;
+  const STRENGTH_OPENER={'חלש 12-14':[12,14],'בינוני 15-17':[15,17],'חזק 18-21':[18,21]};
+  const STRENGTH_RESP={'פס 0-5':[0,5],'חלש 6-9':[6,9],'בינוני 10-12':[10,12],'חזק 13+':[13,16]};
+  const STRENGTH_RESP_NT={'חלש 0-7':[0,7],'בינוני 8-9':[8,9],'חזק 10+':[10,15],'הזמנת סלאם 16-17':[16,17],'ג׳רבר 18+':[18,22]};
+  const STRENGTH_RESP_MINOR={'חלש 6-10':[6,10],'בינוני 11-12':[11,12],'חזק 13+':[13,16]};
 
-      function mapPowerToKey(power){
-            if(!power) return null;
-            if(power.indexOf("חלש") !== -1) return "weak";
-            if(power.indexOf("בינוני") !== -1) return "mid";
-            if(power.indexOf("חזק") !== -1) return "strong";
-            return null;
-      }
+  function initState(){return{type:'free',hcpMin:0,hcpMax:37,commands:'',mode:'free',
+    strengthKey:null,openKey:null,openSuit:null,openType:null,respStrength:null,respType:null,respSuit:null};}
+  let ps={N:initState(),E:initState(),S:initState(),W:initState()};
 
-      var lessonOpenerSeat = "S"; function applyLessonItem(gi, ii){
-            var item = LESSON_GROUPS_WEB[gi][1][ii];
-            var label = item[0], openType = item[1], openSuit = item[2], openPower = item[3], respPower = item[4], respType = item[5], respSuit = item[6];
-            var SUPPORTED = ["nt","major","minor"];
-            if (SUPPORTED.indexOf(openType) === -1) {
-                    alert('השיעור "' + label + '" משתמש בסוג פתיחה שעדיין לא נתמך בכלי האינטרנט (2 חלש / 2 חזקה / פתיחת 2NT). ניתן להיעזר בתוכנה השולחנית לשיעור זה.');
-                    return;
-            }
-            var opSeat = lessonOpenerSeat, reSeat = PARTNER[opSeat]; applyOpening(opSeat, openType, openSuit);
-            var ok = mapPowerToKey(openPower);
-            if (ok) setOpenerStrength(opSeat, ok);
-            var rk = mapPowerToKey(respPower);
-            if (rk) setRespStrength(reSeat, rk);
-            if (respType) setRespType(reSeat, respType, respSuit || null);
-            var st = document.getElementById("lessons-status");
-            if (st) st.textContent = "הופעל שיעור: " + label + " | פותח: " + NAMES[opSeat] + " — מגיב: " + NAMES[reSeat] + "";
-            window.scrollTo({top:0, behavior:"smooth"});
-      }
+  function mkDeck(){const d=[];for(const s of SUITS)for(const r of RANKS)d.push({s,r});return d;}
+  function shf(a){const d=[...a];for(let i=d.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[d[i],d[j]]=[d[j],d[i]];}return d;}
+  function hcp(h){let n=0;for(const c of h)n+=HCP_VAL[c.r]||0;return n;}
+  function slen(h,s){let n=0;for(const c of h)if(c.s===s)n++;return n;}
+  function sortedLen(h){return SUITS.map(s=>slen(h,s)).sort((a,b)=>b-a);}
+  function eqA(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i]);}
+  function checkType(h,t){if(!t||t==='free')return true;const sl=sortedLen(h);
+    if(t==='balanced')return[[4,3,3,3],[4,4,3,2],[5,3,3,2]].some(p=>eqA(sl,p));return true;}
 
-      function buildLessonsUI(){
-            var wrap = document.createElement("div");
-            wrap.id = "lessons-panel";
-            wrap.setAttribute("dir","ltr");
-            wrap.className = "lessons-body"; wrap.style.cssText = "direction:ltr;text-align:right;";
-            var title = document.createElement("div");
-            title.setAttribute("dir","rtl");
-            title.textContent = "📚 רשימת שיעורים (פותח = " + NAMES[lessonOpenerSeat] + ", מגיב = " + NAMES[PARTNER[lessonOpenerSeat]] + ")";
-            title.style.cssText = "direction:rtl;color:#f0e6c8;font-weight:bold;margin-bottom:8px;";
-            wrap.appendChild(title); var seatRow = document.createElement("div"); seatRow.setAttribute("dir","rtl"); seatRow.style.cssText = "direction:rtl;display:flex;gap:10px;align-items:center;margin-bottom:10px;color:#f0e6c8;font-size:0.85rem;flex-wrap:wrap;"; var seatLbl = document.createElement("span"); seatLbl.textContent = "מי פותח:"; seatRow.appendChild(seatLbl); ["S","N","E","W"].forEach(function(seat){ var lbl = document.createElement("label"); lbl.style.cssText = "display:flex;align-items:center;gap:4px;cursor:pointer;"; var rb = document.createElement("input"); rb.type = "radio"; rb.name = "lesson-opener-seat"; rb.value = seat; if (seat === lessonOpenerSeat) rb.checked = true; rb.addEventListener("change", function(){ if (rb.checked) { lessonOpenerSeat = seat; title.textContent = "📚 רשימת שיעורים (פותח = " + NAMES[seat] + ", מגיב = " + NAMES[PARTNER[seat]] + ")"; } }); var txt = document.createElement("span"); txt.textContent = NAMES[seat]; lbl.appendChild(rb); lbl.appendChild(txt); seatRow.appendChild(lbl); }); wrap.appendChild(seatRow);
-            LESSON_GROUPS_WEB.forEach(function(group, gi){
-                    var gLabel = document.createElement("div");
-                    gLabel.setAttribute("dir","rtl");
-                    gLabel.textContent = group[0];
-                    gLabel.style.cssText = "direction:rtl;color:#c8a84b;font-size:0.8rem;font-weight:bold;margin:8px 0 4px;";
-                    wrap.appendChild(gLabel);
-                    var row = document.createElement("div");
-                    row.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;";
-                    group[1].forEach(function(item, ii){
-                              var btn = document.createElement("button");
-                              btn.textContent = item[0];
-                              btn.className = "qbtn";
-                              btn.style.fontFamily = "inherit";
-                              btn.style.unicodeBidi = "plaintext";
-                              btn.addEventListener("click", function(){ applyLessonItem(gi, ii); });
-                              row.appendChild(btn);
-                    });
-                    wrap.appendChild(row);
-            });
-            var status = document.createElement("div");
-            status.id = "lessons-status";
-            status.setAttribute("dir","rtl");
-            status.style.cssText = "direction:rtl;margin-top:10px;color:#f0e6c8;font-size:0.85rem;min-height:18px;";
-            wrap.appendChild(status);
-        var winBox = document.createElement("div");
-        winBox.id = "lessons-window";
-        winBox.className = "lessons-window";
-        var titlebar = document.createElement("div");
-        titlebar.className = "lessons-titlebar";
-        var tbLabel = document.createElement("span");
-        tbLabel.textContent = "📚 שיעורים מוכנים";
-        titlebar.appendChild(tbLabel);
-        var tbBtns = document.createElement("div");
-        tbBtns.className = "lessons-titlebar-btns";
-        var minBtn = document.createElement("button");
-        minBtn.type = "button";
-        minBtn.className = "lessons-win-btn";
-        minBtn.textContent = "-";
-        minBtn.addEventListener("click", function(){ winBox.classList.toggle("lessons-min"); });
-        var closeBtn = document.createElement("button");
-        closeBtn.type = "button";
-        closeBtn.className = "lessons-win-btn";
-        closeBtn.textContent = "X";
-        closeBtn.addEventListener("click", function(){
-          winBox.classList.add("lessons-hidden");
-          var rb = document.getElementById("lessons-reopen-btn");
-          if (rb) rb.classList.remove("lessons-hidden");
-        });
-        tbBtns.appendChild(minBtn);
-        tbBtns.appendChild(closeBtn);
-        titlebar.appendChild(tbBtns);
-        winBox.appendChild(titlebar);
-        winBox.appendChild(wrap);
-        document.body.appendChild(winBox);
-        var dragging = false, offX = 0, offY = 0;
-        titlebar.addEventListener("mousedown", function(e){
-          dragging = true;
-          var rect = winBox.getBoundingClientRect();
-          offX = e.clientX - rect.left;
-          offY = e.clientY - rect.top;
-          winBox.style.right = "auto";
-          winBox.style.left = rect.left + "px";
-          winBox.style.top = rect.top + "px";
-        });
-        document.addEventListener("mousemove", function(e){
-          if (!dragging) return;
-          winBox.style.left = (e.clientX - offX) + "px";
-          winBox.style.top = (e.clientY - offY) + "px";
-        });
-        document.addEventListener("mouseup", function(){ dragging = false; });
-        var reopenBtn = document.getElementById("lessons-reopen-btn");
-        if (!reopenBtn) {
-          reopenBtn = document.createElement("button");
-          reopenBtn.id = "lessons-reopen-btn";
-          reopenBtn.type = "button";
-          reopenBtn.className = "lessons-reopen-btn lessons-hidden";
-          reopenBtn.textContent = "📚 שיעורים";
-          reopenBtn.addEventListener("click", function(){
-            winBox.classList.remove("lessons-hidden");
-            reopenBtn.classList.add("lessons-hidden");
-          });
-          document.body.appendChild(reopenBtn);
-        }
-        
-      }
+  function parseCommands(text){
+    if(!text||!text.trim())return[];const cmds=[];
+    for(let part of text.split('|')){part=part.trim();if(!part)continue;let m;
+      if(m=part.match(/^(\d+)\+major$/)){cmds.push({t:'majorlen',n:+m[1]});continue;}
+      if(m=part.match(/^(\d+)\+minor$/)){cmds.push({t:'minorlen',n:+m[1]});continue;}
+      if(m=part.match(/^(\d+)(\+)?\s*([♠♥♦♣])$/)){cmds.push({t:'len',suit:m[3],n:+m[1],plus:!!m[2]});continue;}
+      if(m=part.match(/^(\d+)-([♠♥♦♣])$/)){cmds.push({t:'maxlen',suit:m[2],n:+m[1]});continue;}
+      if(m=part.match(/^([♠♥♦♣])>=([♠♥♦♣])$/)){cmds.push({t:'longer',s1:m[1],s2:m[2]});continue;}
+      if(part==='no5major'){cmds.push({t:'no5major'});continue;}
+      if(part==='not-balanced'){cmds.push({t:'not-balanced'});continue;}
+      if(part==='not-1nt'){cmds.push({t:'not-1nt'});continue;}
+      if(part==='major-longest'){cmds.push({t:'major-longest'});continue;}
+      if(m=part.match(/^minorover([♣♦])$/)){cmds.push({t:'minorover',suit:m[1]});continue;}
+      if(part==='minorover-gen'){cmds.push({t:'minorover-gen'});continue;}
+      if(part==='two4card'){cmds.push({t:'two4card'});continue;}
+      if(part==='no4major'){cmds.push({t:'no4major'});continue;}
+      if(part==='minor-club'){cmds.push({t:'minor-club'});continue;}
+      if(part==='minor-diamond'){cmds.push({t:'minor-diamond'});continue;}
+      if(m=part.match(/^hcp(\d+)\+([♠♥♦♣])$/)){cmds.push({t:'suit-hcp',suit:m[2],min:+m[1]});continue;}
+    }
+    return cmds;
+  }
+  function checkCommands(h,cmds){
+    for(const c of cmds){
+      if(c.t==='len'){const l=slen(h,c.suit);if(c.plus?l<c.n:l!==c.n)return false;}
+      else if(c.t==='longer'){if(slen(h,c.s1)<slen(h,c.s2))return false;}
+      else if(c.t==='no5major'){if(slen(h,'♥')>=5)return false;if(slen(h,'♠')>=5)return false;}
+      else if(c.t==='not-balanced'){const sl=sortedLen(h);if([[4,3,3,3],[4,4,3,2],[5,3,3,2]].some(p=>eqA(sl,p)))return false;}
+      else if(c.t==='not-1nt'){const sl=sortedLen(h);if([[4,3,3,3],[4,4,3,2],[5,3,3,2]].some(p=>eqA(sl,p))&&cfg.ntMin<=hcp(h)&&hcp(h)<=cfg.ntMax)return false;}
+      else if(c.t==='two4card'){if(SUITS.filter(s=>slen(h,s)>=4).length<2)return false;}
+      else if(c.t==='maxlen'){if(slen(h,c.suit)>c.n)return false;}
+      else if(c.t==='majorlen'){if(Math.max(slen(h,'♥'),slen(h,'♠'))<c.n)return false;}
+      else if(c.t==='minorlen'){if(Math.max(slen(h,'♣'),slen(h,'♦'))<c.n)return false;}
+      else if(c.t==='minorover-gen'){const ml=Math.max(slen(h,'♣'),slen(h,'♦'));for(const mj of['♥','♠']){const jl=slen(h,mj);if(jl>=4&&ml<=jl)return false;}}
+      else if(c.t==='major-longest'){if(Math.max(slen(h,'♥'),slen(h,'♠'))<Math.max(slen(h,'♦'),slen(h,'♣')))return false;}
+      else if(c.t==='minorover'){const ml=slen(h,c.suit);for(const mj of['♥','♠']){const jl=slen(h,mj);if(jl>=4&&ml<=jl)return false;}}
+      else if(c.t==='no4major'){if(slen(h,'♥')>=4)return false;if(slen(h,'♠')>=4)return false;}
+      else if(c.t==='minor-club'){const cl=slen(h,'♣'),di=slen(h,'♦');if(!(cl>di||(cl===di&&cl===3)))return false;}
+      else if(c.t==='minor-diamond'){const cl=slen(h,'♣'),di=slen(h,'♦');if(!(di>cl))return false;}
+      else if(c.t==='suit-hcp'){let pts=0;for(const x of h)if(x.s===c.suit)pts+=HCP_VAL[x.r]||0;if(pts<c.min)return false;}
+    }
+    return true;
+  }
+  function ntRespDealable(oh,rh){
+    if(Math.min(...SUITS.map(s=>slen(rh,s)))>1)return true;
+    if(hcp(rh)<10)return true;
+    if(['♥','♠'].some(s=>slen(oh,s)+slen(rh,s)>=8))return true;
+    return false;
+  }
+  function dealOne(){
+    const C={};
+    for(const p of'NESW'){const st=ps[p];C[p]={type:st.type,min:st.hcpMin,max:st.hcpMax,cmds:parseCommands(st.commands)};}
+    const deck=mkDeck();
+    for(let it=0;it<WS_MAX_TRIES;it++){
+      const d=shf(deck);const h={N:d.slice(0,13),E:d.slice(13,26),S:d.slice(26,39),W:d.slice(39,52)};
+      let ok=true;
+      for(const p of'NESW'){const ph=h[p],c=C[p];if(!checkType(ph,c.type)||hcp(ph)<c.min||hcp(ph)>c.max||!checkCommands(ph,c.cmds)){ok=false;break;}}
+      const op=[...'NESW'].find(p=>ps[p].mode==='opener')||'N';const pp=PARTNER[op];
+      const isW2=ps[op].openType==='weak2';
+      if(ok&&ps[op].openKey==='nt'&&!ntRespDealable(h[op],h[pp]))ok=false;
+      if(ok&&ps[op].openKey==='major'&&!ps[op].openSuit&&ps[pp].mode==='responder'&&ps[pp].respType==='support'){const oh=h[op];const om=slen(oh,'♠')>=slen(oh,'♥')?'♠':'♥';if(slen(h[pp],om)<3)ok=false;}
+      if(ok&&ps[op].openKey==='major'&&!ps[op].openSuit&&ps[pp].mode==='responder'&&ps[pp].respType==='1nt'){const oh=h[op],rh=h[pp];const om=slen(oh,'♠')>=slen(oh,'♥')?'♠':'♥';if(slen(rh,om)>=4)ok=false;else if(om==='♥'&&slen(rh,'♠')>=4)ok=false;}
+      if(ok&&ps[op].openKey==='minor'&&!ps[op].openSuit&&ps[pp].mode==='responder'&&ps[pp].respType==='supp-minor'){const oh=h[op];const om=slen(oh,'♦')>slen(oh,'♣')?'♦':'♣';if(slen(h[pp],om)<5)ok=false;}
+      if(ok&&(isW2||Math.max(hcp(h[op]),hcp(h[pp]))>=12))return h;
+    }
+    return null;
+  }
+  function recomputeOpener(p){
+    const st=ps[p];const[sMin,sMax]=STRENGTH_OPENER[st.strengthKey]||[12,21];
+    if(st.openKey==='nt'){st.type='balanced';st.hcpMin=cfg.ntMin;st.hcpMax=cfg.ntMax;st.commands='';return;}
+    if(st.openKey==='major'||st.openKey==='minor'){
+      const minLen=st.openKey==='major'?cfg.majorLen:cfg.minorLen;st.type='free';st.hcpMin=sMin;st.hcpMax=sMax;
+      const bal=cfg.ntMin===12?'not-1nt':'not-balanced';
+      if(st.openKey==='minor'){let cmd;
+        if(st.openSuit){const mc=st.openSuit;const tag=mc==='♦'?'minor-diamond':'minor-club';cmd=`${minLen}+${mc}|${tag}|no5major|${bal}`;if(cfg.majorLen===4)cmd+=`|minorover${mc}`;}
+        else{cmd=`${minLen}+minor|no5major|${bal}`;if(cfg.majorLen===4)cmd+='|minorover-gen';}
+        st.commands=cmd;
+      }else if(st.openSuit){const s=st.openSuit,other=s==='♥'?'♠':'♥';st.commands=`${minLen}+${s}|${bal}|4-${other}|${s}>=♦|${s}>=♣`;}
+      else{st.commands=`${minLen}+major|${bal}|major-longest`;}
+      return;
+    }
+    if(st.strengthKey){st.type='free';st.hcpMin=sMin;st.hcpMax=sMax;st.commands='';return;}
+    st.type='free';st.hcpMin=0;st.hcpMax=37;st.commands='';
+  }
+  function recomputeResponder(p){
+    const st=ps[p];const partnerSuit=ps[PARTNER[p]].openSuit;const rs=st.respStrength;let hMin,hMax;
+    if(rs in STRENGTH_RESP_NT){const game=25-cfg.ntMin,inv=25-cfg.ntMax;
+      const D={'חלש 0-7':[0,inv-1],'בינוני 8-9':[inv,game-1],'חזק 10+':[game,15],'הזמנת סלאם 16-17':[16,17],'ג׳רבר 18+':[18,22]};[hMin,hMax]=D[rs];}
+    else{[hMin,hMax]=STRENGTH_RESP_MINOR[rs]||STRENGTH_RESP[rs]||[0,37];}
+    let t='free',cmds='';const rt=st.respType;const openType=st.openType||'';
+    if(rt==='support')cmds=partnerSuit?`3+${partnerSuit}`:'';
+    else if(rt==='supp-minor')cmds=partnerSuit?`5+${partnerSuit}`:'';
+    else if(rt==='1nt'){t='balanced';if(partnerSuit==='♥')cmds='2-♥|3-♠';else if(partnerSuit==='♠')cmds='2-♠';else if(partnerSuit==='♣'||partnerSuit==='♦')cmds='no4major|4-♣|4-♦';else if(openType==='minor')cmds='no4major';else cmds='';}
+    else if(rt==='1h'){if(openType==='minor')cmds='4+♥|3-♠';else if(openType==='2club')cmds='5+♥|4-♠';else cmds='4+♥';}
+    else if(rt==='1s'){if(openType==='minor')cmds='4+♠|3-♥';else if(openType==='2club')cmds='5+♠';else cmds='4+♠';}
+    else if(rt==='2c')cmds='4+♣';
+    else if(rt==='2d')cmds='4+♦';
+    else if(rt==='trans-h')cmds='5+♥|4-♠';
+    else if(rt==='trans-s')cmds='5+♠|4-♥';
+    else if(rt==='2nt'){t='balanced';if(openType!=='2nt_op'&&openType!=='nt')hMin=Math.max(hMin,11);if(partnerSuit==='♥')cmds='2-♥|3-♠';else if(partnerSuit==='♠')cmds='2-♠|3-♥';else if(partnerSuit==='♣'||partnerSuit==='♦')cmds='no4major|4-♦|4-♣';else cmds='no4major';}
+    else if(rt==='stayman')cmds=`4+${st.respSuit||'♥'}|two4card|no5major`;
+    else if(rt==null&&openType==='nt'){t='balanced';cmds='no4major';}
+    st.type=t;st.hcpMin=hMin;st.hcpMax=hMax;st.commands=cmds;
+  }
+  function setupScenario(nOpen,nSuit,nStr,sStr,sType,sSuit){
+    for(const p of'NESW')ps[p]=initState();
+    const n=ps.N;n.mode='opener';n.openKey=nOpen;n.openSuit=nSuit;n.openType=nOpen;n.strengthKey=nStr;
+    if(nOpen==='weak2'){n.hcpMin=6;n.hcpMax=9;n.type='free';n.commands=`6${nSuit}|hcp5+${nSuit}`;}
+    else if(nOpen==='2club'){n.hcpMin=23;n.hcpMax=37;n.type='free';n.commands='';}
+    else if(nOpen==='2nt_op'){n.hcpMin=20;n.hcpMax=22;n.type='balanced';n.commands='';}
+    else recomputeOpener('N');
+    const s=ps.S;s.mode='responder';s.openSuit=nSuit;s.openType=nOpen;s.respStrength=sStr;s.respType=sType;s.respSuit=sSuit;
+    if(nOpen==='2club'&&sStr==null){s.hcpMin=0;s.hcpMax=6;s.type='free';s.commands='';}
+    else recomputeResponder('S');
+  }
 
-      if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", buildLessonsUI);
-      } else {
-            buildLessonsUI();
-      }
-  })();
+  // ===== WORKSHEET_PANEL =====
+  const _NAT_NT=[['nt',null,null,'חלש 0-7',null,null],['nt',null,null,'בינוני 8-9','2nt',null],['nt',null,null,'חזק 10+','2nt',null]];
+  const _STAYMAN=[['nt',null,null,'בינוני 8-9','stayman','♥'],['nt',null,null,'חזק 10+','stayman','♥']];
+  const _TRANSFER=[['nt',null,null,'חלש 0-7','trans-h','♥'],['nt',null,null,'חלש 0-7','trans-s','♠'],['nt',null,null,'בינוני 8-9','trans-h','♥'],['nt',null,null,'בינוני 8-9','trans-s','♠'],['nt',null,null,'חזק 10+','trans-h','♥'],['nt',null,null,'חזק 10+','trans-s','♠']];
+  const _2NT_ALL=[['2nt_op',null,null,'בינוני 10-12','2nt',null],['2nt_op',null,null,'בינוני 10-12','stayman','♥'],['2nt_op',null,null,'חלש 6-9','trans-h','♥'],['2nt_op',null,null,'חלש 6-9','trans-s','♠']];
+  const _MAJ_SUPP=[['major',null,null,'פס 0-5',null,null],['major',null,null,'חלש 6-9','support',null],['major',null,null,'בינוני 10-12','support',null],['major',null,null,'חזק 13+','support',null]];
+  const _MAJ_NT=[['major',null,null,'חלש 6-9','1nt',null],['major',null,null,'בינוני 10-12','2nt',null],['major',null,null,'חזק 13+','2nt',null]];
+  const _MIN_MAJ=[['minor',null,null,'חלש 6-10','1h','♥'],['minor',null,null,'חלש 6-10','1s','♠']];
+  const _MIN_NT=[['minor',null,null,'חלש 6-10','1nt',null],['minor',null,null,'בינוני 11-12','2nt',null],['minor',null,null,'חזק 13+','2nt',null]];
+  const _MIN_SUPP=[['minor',null,null,'חלש 6-10','supp-minor',null],['minor',null,null,'בינוני 11-12','supp-minor',null]];
+  const _SLAM_SUIT=[['major','♥','חזק 18-21','חזק 13+','support','♥'],['major','♠','חזק 18-21','חזק 13+','support','♠']];
+  const _SLAM_NT=[['nt',null,null,'הזמנת סלאם 16-17','2nt',null],['nt',null,null,'ג׳רבר 18+','2nt',null]];
+  const _2CLUB=[['2club',null,null,null,null,null],['2club',null,null,'בינוני 10-12','1h','♥'],['2club',null,null,'בינוני 10-12','1s','♠']];
+  const _WEAK2=[['weak2','♥',null,'חלש 6-9',null,null],['weak2','♥',null,'בינוני 10-12','support','♥'],['weak2','♠',null,'חלש 6-9',null,null],['weak2','♠',null,'בינוני 10-12','support','♠']];
+  const NTS=['split','תשובות ב','NT'];
+  const PANEL=[
+    ['h','1NT'],['b',NTS,_NAT_NT],['b','סטיימן',_STAYMAN],['b','טרנספר',_TRANSFER],
+    ['h','2NT'],['b','כל התשובות',_2NT_ALL],
+    ['h','מיגורים'],['b','תמיכה במיגור',_MAJ_SUPP],['b',NTS,_MAJ_NT],
+    ['h','מינורים'],['b','תשובות במיגור',_MIN_MAJ],['b',NTS,_MIN_NT],['b','תמיכה במינור',_MIN_SUPP],
+    ['h','סלאם'],['b','סלאם בצבע',_SLAM_SUIT],['b',['split','סלאם ב','NT'],_SLAM_NT],
+    ['h','2♣ חזקה'],['b','כל התשובות',_2CLUB],
+    ['h','פתיחות חלשות'],['b','כל התשובות',_WEAK2]
+  ];
+
+  function makeWorksheet(scenarios){
+    const n=parseInt(document.getElementById('num-boards').value)||4;
+    const boards=[];
+    for(let i=0;i<n;i++){
+      const sc=scenarios[i%scenarios.length];
+      setupScenario(sc[0],sc[1],sc[2],sc[3],sc[4],sc[5]);
+      let h=null;for(let t=0;t<3;t++){h=dealOne();if(h)break;}
+      if(!h){alert('לא נמצאה חלוקה לאחד התרחישים. נסה שוב.');return;}
+      boards.push(h);
+    }
+    window.openPrint(boards,'N');
+  }
+
+  // ===== Floating worksheet window =====
+  function buildWorksheetUI(){
+    const win=document.createElement('div');win.id='lessons-window';win.className='lessons-window';
+    const tb=document.createElement('div');tb.className='lessons-titlebar';
+    const tl=document.createElement('span');tl.textContent='📚 דפי עבודה';tb.appendChild(tl);
+    const tbb=document.createElement('div');tbb.className='lessons-titlebar-btns';
+    const mn=document.createElement('button');mn.type='button';mn.className='lessons-win-btn';mn.textContent='-';
+    mn.addEventListener('click',()=>win.classList.toggle('lessons-min'));
+    const cl=document.createElement('button');cl.type='button';cl.className='lessons-win-btn';cl.textContent='X';
+    cl.addEventListener('click',()=>{win.classList.add('lessons-hidden');const rb=document.getElementById('lessons-reopen-btn');if(rb)rb.classList.remove('lessons-hidden');});
+    tbb.appendChild(mn);tbb.appendChild(cl);tb.appendChild(tbb);win.appendChild(tb);
+    const body=document.createElement('div');body.className='lessons-body';body.setAttribute('dir','rtl');
+    PANEL.forEach(it=>{
+      if(it[0]==='h'){const hd=document.createElement('div');hd.textContent=it[1];hd.style.cssText='color:#c8a84b;font-weight:bold;font-size:0.9rem;margin:10px 0 4px;border-bottom:1px solid #c8a84b55;padding-bottom:2px;';body.appendChild(hd);}
+      else{const spec=it[1],scen=it[2];const btn=document.createElement('button');btn.className='qbtn';
+        btn.style.cssText='display:block;width:100%;text-align:center;margin:3px 0;font-family:inherit;';
+        btn.textContent=Array.isArray(spec)?(spec[1]+' '+spec[2]):spec;
+        btn.addEventListener('click',()=>makeWorksheet(scen));body.appendChild(btn);}
+    });
+    win.appendChild(body);document.body.appendChild(win);
+    // drag
+    let dg=false,ox=0,oy=0;
+    tb.addEventListener('mousedown',e=>{dg=true;const r=win.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;win.style.right='auto';win.style.left=r.left+'px';win.style.top=r.top+'px';});
+    document.addEventListener('mousemove',e=>{if(!dg)return;win.style.left=(e.clientX-ox)+'px';win.style.top=(e.clientY-oy)+'px';});
+    document.addEventListener('mouseup',()=>dg=false);
+    let rb=document.getElementById('lessons-reopen-btn');
+    if(!rb){rb=document.createElement('button');rb.id='lessons-reopen-btn';rb.type='button';rb.className='lessons-reopen-btn lessons-hidden';rb.textContent='📚 דפי עבודה';
+      rb.addEventListener('click',()=>{win.classList.remove('lessons-hidden');rb.classList.add('lessons-hidden');});document.body.appendChild(rb);}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',buildWorksheetUI);else buildWorksheetUI();
+})();
 </script>
 <script>
   (function(){
@@ -825,7 +1070,10 @@
       "הופעל שיעור: ": "Lesson activated: ", " | פותח: ": " | Opener: ", " — מגיב: ": " — Responder: ",
       "השיעור \"": "The lesson \"",
       "\" משתמש בסוג פתיחה שעדיין לא נתמך בכלי האינטרנט (2 חלש / 2 חזקה / פתיחת 2NT). ניתן להיעזר בתוכנה השולחנית לשיעור זה.": "\" uses an opening type not yet supported in the web tool (Weak 2 / Strong 2 / 2NT opening). Please use the desktop software for this lesson.",
-      "📚 שיעורים מוכנים": "📚 Ready-made Lessons", "📚 שיעורים": "📚 Lessons"
+      "📚 שיעורים מוכנים": "📚 Ready-made Lessons", "📚 שיעורים": "📚 Lessons",
+      "📚 דפי עבודה": "📚 Worksheets", "פתיחות חלשות": "Weak Openings",
+      "תשובות ב NT": "NT Responses", "סלאם ב NT": "NT Slam", "כל התשובות": "All Responses",
+      "תמיכה במיגור": "Major Support", "תשובות במיגור": "Major Responses", "תמיכה במינור": "Minor Support", "סלאם בצבע": "Suit Slam"
     };
 
    window.__currentLang = 'he';
