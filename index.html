@@ -893,6 +893,14 @@ function openStrips(){
     if(['♥','♠'].some(s=>slen(oh,s)+slen(rh,s)>=8))return true;
     return false;
   }
+  function wsSane(hand){
+    for(const s of SUITS){
+      const cs=hand.filter(c=>c.s===s);
+      if(cs.length>6)return false;
+      if(cs.length===1&&(cs[0].r==='K'||cs[0].r==='Q'))return false;
+    }
+    return true;
+  }
   function dealOne(){
     const C={};
     for(const p of'NESW'){const st=ps[p];C[p]={type:st.type,min:st.hcpMin,max:st.hcpMax,cmds:parseCommands(st.commands)};}
@@ -900,12 +908,13 @@ function openStrips(){
     for(let it=0;it<WS_MAX_TRIES;it++){
       const d=shf(deck);const h={N:d.slice(0,13),E:d.slice(13,26),S:d.slice(26,39),W:d.slice(39,52)};
       let ok=true;
-      for(const p of'NESW'){const ph=h[p],c=C[p];if(!checkType(ph,c.type)||hcp(ph)<c.min||hcp(ph)>c.max||!checkCommands(ph,c.cmds)){ok=false;break;}}
+      for(const p of'NESW'){const ph=h[p],c=C[p];if(!checkType(ph,c.type)||hcp(ph)<c.min||hcp(ph)>c.max||!checkCommands(ph,c.cmds)||!wsSane(ph)){ok=false;break;}}
       const op=[...'NESW'].find(p=>ps[p].mode==='opener')||'N';const pp=PARTNER[op];
       const isW2=ps[op].openType==='weak2';
       if(ok&&ps[op].openKey==='nt'&&!ntRespDealable(h[op],h[pp]))ok=false;
       if(ok&&ps[op].openKey==='major'&&!ps[op].openSuit&&ps[pp].mode==='responder'&&ps[pp].respType==='support'){const oh=h[op];const om=slen(oh,'♠')>=slen(oh,'♥')?'♠':'♥';if(slen(h[pp],om)<3)ok=false;}
-      if(ok&&ps[op].openKey==='major'&&!ps[op].openSuit&&ps[pp].mode==='responder'&&ps[pp].respType==='1nt'){const oh=h[op],rh=h[pp];const om=slen(oh,'♠')>=slen(oh,'♥')?'♠':'♥';if(slen(rh,om)>=4)ok=false;else if(om==='♥'&&slen(rh,'♠')>=4)ok=false;}
+      if(ok&&ps[op].openKey==='major'&&!ps[op].openSuit&&ps[pp].mode==='responder'&&ps[pp].respType==='1nt'){const oh=h[op],rh=h[pp];const om=slen(oh,'♠')>=slen(oh,'♥')?'♠':'♥';if(slen(rh,om)>=3)ok=false;else if(om==='♥'&&slen(rh,'♠')>=4)ok=false;}
+      if(ok&&ps[op].openKey==='major'&&!ps[op].openSuit&&ps[pp].mode==='responder'&&ps[pp].respType==='2nt'){const oh=h[op],rh=h[pp];const om=slen(oh,'♠')>=slen(oh,'♥')?'♠':'♥';if(slen(rh,om)>=3)ok=false;}
       if(ok&&ps[op].openKey==='minor'&&!ps[op].openSuit&&ps[pp].mode==='responder'&&ps[pp].respType==='supp-minor'){const oh=h[op];const om=slen(oh,'♦')>slen(oh,'♣')?'♦':'♣';if(slen(h[pp],om)<5)ok=false;}
       if(ok&&(isW2||Math.max(hcp(h[op]),hcp(h[pp]))>=12))return h;
     }
@@ -962,7 +971,7 @@ function openStrips(){
 
   // ===== WORKSHEET_PANEL =====
   const _NAT_NT=[['nt',null,null,'חלש 0-7',null,null],['nt',null,null,'בינוני 8-9','2nt',null],['nt',null,null,'חזק 10+','2nt',null]];
-  const _STAYMAN=[['nt',null,null,'בינוני 8-9','stayman','♥'],['nt',null,null,'חזק 10+','stayman','♥']];
+  const _STAYMAN=[['nt',null,null,'בינוני 8-9','stayman','♥'],['nt',null,null,'בינוני 8-9','stayman','♠'],['nt',null,null,'חזק 10+','stayman','♥'],['nt',null,null,'חזק 10+','stayman','♠']];
   const _TRANSFER=[['nt',null,null,'חלש 0-7','trans-h','♥'],['nt',null,null,'חלש 0-7','trans-s','♠'],['nt',null,null,'בינוני 8-9','trans-h','♥'],['nt',null,null,'בינוני 8-9','trans-s','♠'],['nt',null,null,'חזק 10+','trans-h','♥'],['nt',null,null,'חזק 10+','trans-s','♠']];
   const _2NT_ALL=[['2nt_op',null,null,'בינוני 10-12','2nt',null],['2nt_op',null,null,'בינוני 10-12','stayman','♥'],['2nt_op',null,null,'חלש 6-9','trans-h','♥'],['2nt_op',null,null,'חלש 6-9','trans-s','♠']];
   const _MAJ_SUPP=[['major',null,null,'פס 0-5',null,null],['major',null,null,'חלש 6-9','support',null],['major',null,null,'בינוני 10-12','support',null],['major',null,null,'חזק 13+','support',null]];
@@ -987,15 +996,22 @@ function openStrips(){
 
   function makeWorksheet(scenarios){
     const n=parseInt(document.getElementById('num-boards').value)||4;
+    // דילר לפי הבורר (— → N); היד הפותחת תסובב למושב הנבחר
+    const dsel=(document.querySelector('input[name="dealer"]:checked')||{}).value;
+    const dealer=/^[NESW]$/.test(dsel||'')?dsel:'N';
+    const order=['N','E','S','W'], off={N:0,E:1,S:2,W:3}[dealer];
+    // תרחישים מעורבים אקראית עם כיסוי מלא
+    const pool=[]; while(pool.length<n){for(const sc of shf(scenarios))pool.push(sc);}
     const boards=[];
     for(let i=0;i<n;i++){
-      const sc=scenarios[i%scenarios.length];
+      const sc=pool[i];
       setupScenario(sc[0],sc[1],sc[2],sc[3],sc[4],sc[5]);
       let h=null;for(let t=0;t<3;t++){h=dealOne();if(h)break;}
       if(!h){alert('לא נמצאה חלוקה לאחד התרחישים. נסה שוב.');return;}
+      if(off){const rot={};order.forEach((seat,k)=>{rot[seat]=h[order[(k-off+4)%4]];});h=rot;}
       boards.push(h);
     }
-    window.openPrint(boards,'N');
+    window.openPrint(boards,dealer);
   }
 
   // ===== Floating worksheet window =====
