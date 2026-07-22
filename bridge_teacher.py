@@ -17,6 +17,7 @@ PARTNER  = {'N':'S','S':'N','E':'W','W':'E'}
 NAMES    = {'N':'צפון (N)','E':'מזרח (E)','S':'דרום (S)','W':'מערב (W)'}
 
 MAX_TRIES = 200000
+_WS_MODE = False   # דגל מצב דף-עבודה: מפעיל פילטרים נוספים (תמיכה≤2 מול NT, תקרת 6, בלי סינגלטון K/Q). לא חל על פנלים ידניים.
 
 STRENGTH_OPENER     = {'חלש 12-14':(12,14),'בינוני 15-17':(15,17),'חזק 18-21':(18,21)}
 STRENGTH_RESP       = {'פס 0-5':(0,5),'חלש 6-9':(6,9),'בינוני 10-12':(10,12),'חזק 13+':(13,16)}
@@ -98,7 +99,9 @@ _NAT_NT   = [('nt',None,None,'חלש 0-7',None,None),
              ('nt',None,None,'בינוני 8-9','2nt',None),
              ('nt',None,None,'חזק 10+','2nt',None)]
 _STAYMAN  = [('nt',None,None,'בינוני 8-9','stayman','♥'),
-             ('nt',None,None,'חזק 10+','stayman','♥')]
+             ('nt',None,None,'בינוני 8-9','stayman','♠'),
+             ('nt',None,None,'חזק 10+','stayman','♥'),
+             ('nt',None,None,'חזק 10+','stayman','♠')]
 _TRANSFER = [('nt',None,None,'חלש 0-7','trans-h','♥'),
              ('nt',None,None,'חלש 0-7','trans-s','♠'),
              ('nt',None,None,'בינוני 8-9','trans-h','♥'),
@@ -372,9 +375,20 @@ def deal_one_board():
             hh = sum(1 for x in oh if x['s']=='♥')
             ss = sum(1 for x in oh if x['s']=='♠')
             om = '♠' if ss >= hh else '♥'
-            if sum(1 for x in rh if x['s']==om) >= 4:            # תמיכה רביעייה
+            if sum(1 for x in rh if x['s']==om) >= (3 if _WS_MODE else 4):  # WS: תמיכה 3+ פוסלת
                 ok = False
             elif om == '♥' and sum(1 for x in rh if x['s']=='♠') >= 4:  # היה מכריז 1♠
+                ok = False
+        # מיגור גנרי + משיב 2NT (דף-עבודה בלבד): ללא תמיכה (≤2) בסדרת הפותח בפועל
+        if _WS_MODE and ok and pState[opener_p].get('openKey') == 'major' \
+                and not pState[opener_p].get('openSuit') \
+                and pState[partner_p].get('mode') == 'responder' \
+                and pState[partner_p].get('respType') == '2nt':
+            oh = h[opener_p]; rh = h[partner_p]
+            hh = sum(1 for x in oh if x['s']=='♥')
+            ss = sum(1 for x in oh if x['s']=='♠')
+            om = '♠' if ss >= hh else '♥'
+            if sum(1 for x in rh if x['s']==om) >= 3:
                 ok = False
         # מינור גנרי: המשיב-תמיכה חייב 5+ במינור שהפותח פתח בפועל (המינור הארוך)
         if ok and pState[opener_p].get('openKey') == 'minor' \
@@ -387,6 +401,14 @@ def deal_one_board():
             opener_minor = '♦' if di > cl else '♣'   # better minor; שוויון → ♣
             if sum(1 for x in h[partner_p] if x['s']==opener_minor) < 5:
                 ok = False
+        # תקרת אורך סדרה 6, ואין סינגלטון K/Q — בכל 4 הידיים (דף-עבודה בלבד)
+        if _WS_MODE and ok:
+            for p in 'NESW':
+                for s in SUITS:
+                    cs = [x for x in h[p] if x['s']==s]
+                    if len(cs) > 6 or (len(cs) == 1 and cs[0]['r'] in ('K','Q')):
+                        ok = False; break
+                if not ok: break
         if ok and (is_weak2 or max(hcp(h[opener_p]), hcp(h[partner_p])) >= 12): return h
     return None
 
@@ -1355,24 +1377,37 @@ class App(tk.Tk):
         """דף עבודה: מחלק N לוחות (הבורר) שמתפרשים על רשימת התרחישים בכוחות
         מעורבים — תרחיש שונה לכל לוח (מסתובב). מוסיף למאגר הקיים. פותח=N."""
         n_boards = self.var_boards.get()
+        dealer = self.var_dealer.get()
+        if dealer not in 'NESW':
+            dealer = 'N'
+        order = ['N', 'E', 'S', 'W']; off = order.index(dealer)
+        # תרחישים מעורבים אקראית עם כיסוי מלא
+        pool = []
+        while len(pool) < n_boards:
+            sc = list(scenarios); random.shuffle(sc); pool.extend(sc)
         boards = []
-        for i in range(n_boards):
-            n_open, n_suit, n_str, s_str, s_type, s_suit = scenarios[i % len(scenarios)]
-            self._setup_scenario(n_open, n_suit, n_str, s_str, s_type, s_suit)
-            h = None
-            for _ in range(3):                 # נסה שוב על תרחיש קשה לפני ויתור
-                h = deal_one_board()
-                if h is not None:
-                    break
-            if h is None:
-                messagebox.showerror('שגיאה', 'לא נמצאה חלוקה לאחד התרחישים. נסה שוב.')
-                return
-            boards.append(h)
+        global _WS_MODE
+        _WS_MODE = True   # מפעיל את פילטרי דף-העבודה (תמיכה≤2, תקרת 6, בלי סינגלטון K/Q)
+        try:
+            for i in range(n_boards):
+                n_open, n_suit, n_str, s_str, s_type, s_suit = pool[i]
+                self._setup_scenario(n_open, n_suit, n_str, s_str, s_type, s_suit)
+                h = None
+                for _ in range(3):             # נסה שוב על תרחיש קשה לפני ויתור
+                    h = deal_one_board()
+                    if h is not None:
+                        break
+                if h is None:
+                    messagebox.showerror('שגיאה', 'לא נמצאה חלוקה לאחד התרחישים. נסה שוב.')
+                    return
+                if off:   # סובב כך שהיד הפותחת (N) תשב במושב הדילר הנבחר
+                    h = {seat: h[order[(k - off) % 4]] for k, seat in enumerate(order)}
+                boards.append(h)
+        finally:
+            _WS_MODE = False
 
         self._board_buffer.extend(boards)
-        self._buffer_dealer = 'N'
-        # השאר את התצוגה על התרחיש האחרון (עקבי עם לחיצת שיעור)
-        self._set_dealer('N')
+        self._buffer_dealer = dealer
         self._refresh_all()
         self._update_buffer_ui()
 

@@ -286,23 +286,28 @@ def run_panel():
 
 
 def run_worksheet():
-    """כל תרחישי WORKSHEET_PANEL (פנל דפי-העבודה החדש) × 2 שיטות × 4 רוחות."""
+    """כל תרחישי WORKSHEET_PANEL (פנל דפי-העבודה החדש) × 2 שיטות × 4 רוחות.
+    נבדק עם _WS_MODE=True — כדי לכסות את פילטרי דף-העבודה (תמיכה≤2, תקרת 6, בלי סינגלטון K/Q)."""
     all_bad = []
-    for cfg_name, ml, nmin, nmax in [('רגילה 15-17/5', 5, 15, 17), ('אקול 12-14/4', 4, 12, 14)]:
-        set_cfg(ml, nmin, nmax)
-        for opener in 'NESW':
-            recs = []
-            for item in bt.WORKSHEET_PANEL:
-                if item[0] != 'b':
-                    continue
-                labelspec, scenarios = item[1], item[2]
-                blabel = labelspec if isinstance(labelspec, str) else ''.join(labelspec[1:])
-                for sc in scenarios:
-                    n_open, n_suit, n_str, s_str, s_type, s_suit = sc
-                    setup_lesson(n_open, n_suit, n_str, s_str, s_type, s_suit, opener=opener)
-                    tag = f'{s_str or "-"}/{s_type or "-"}'
-                    recs.append(analyze(f'[{cfg_name} פותח={opener}] {blabel}:{tag}'))
-            all_bad += report(recs, f'דפי-עבודה — {cfg_name} · פותח={opener}')
+    bt._WS_MODE = True
+    try:
+        for cfg_name, ml, nmin, nmax in [('רגילה 15-17/5', 5, 15, 17), ('אקול 12-14/4', 4, 12, 14)]:
+            set_cfg(ml, nmin, nmax)
+            for opener in 'NESW':
+                recs = []
+                for item in bt.WORKSHEET_PANEL:
+                    if item[0] != 'b':
+                        continue
+                    labelspec, scenarios = item[1], item[2]
+                    blabel = labelspec if isinstance(labelspec, str) else ''.join(labelspec[1:])
+                    for sc in scenarios:
+                        n_open, n_suit, n_str, s_str, s_type, s_suit = sc
+                        setup_lesson(n_open, n_suit, n_str, s_str, s_type, s_suit, opener=opener)
+                        tag = f'{s_str or "-"}/{s_type or "-"}'
+                        recs.append(analyze(f'[{cfg_name} פותח={opener}] {blabel}:{tag}'))
+                all_bad += report(recs, f'דפי-עבודה — {cfg_name} · פותח={opener}')
+    finally:
+        bt._WS_MODE = False
     return all_bad
 
 
